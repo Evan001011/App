@@ -1,0 +1,196 @@
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { CalendarEvent } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface EditEventDialogProps {
+  event: CalendarEvent;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogProps) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    title: event.title,
+    description: event.description || "",
+    date: event.date,
+    subject: event.subject,
+    eventType: event.eventType,
+  });
+
+  useEffect(() => {
+    setFormData({
+      title: event.title,
+      description: event.description || "",
+      date: event.date,
+      subject: event.subject,
+      eventType: event.eventType,
+    });
+  }, [event]);
+
+  const updateEventMutation = useMutation({
+    mutationFn: async (data: Partial<CalendarEvent>) => {
+      return await apiRequest("PATCH", `/api/calendar/${event.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar/upcoming"] });
+      toast({ title: "Event updated successfully" });
+      onOpenChange(false);
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/calendar/${event.id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar/upcoming"] });
+      toast({ title: "Event deleted" });
+      onOpenChange(false);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim()) return;
+    updateEventMutation.mutate(formData);
+  };
+
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      deleteEventMutation.mutate();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent data-testid="dialog-edit-event">
+        <DialogHeader>
+          <DialogTitle>Edit Event</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                data-testid="input-edit-event-title"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                data-testid="input-edit-event-description"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                data-testid="input-edit-event-date"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="subject">Subject</Label>
+              <Select
+                value={formData.subject}
+                onValueChange={(value) => setFormData({ ...formData, subject: value })}
+              >
+                <SelectTrigger data-testid="select-edit-event-subject">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="math">Math</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="writing">Writing</SelectItem>
+                  <SelectItem value="social_studies">Social Studies</SelectItem>
+                  <SelectItem value="coding">Coding</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="eventType">Event Type</Label>
+              <Select
+                value={formData.eventType}
+                onValueChange={(value) => setFormData({ ...formData, eventType: value })}
+              >
+                <SelectTrigger data-testid="select-edit-event-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="assignment">Assignment</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                  <SelectItem value="test">Test</SelectItem>
+                  <SelectItem value="deadline">Deadline</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteEventMutation.isPending}
+              data-testid="button-delete-event"
+            >
+              Delete
+            </Button>
+            <div className="flex-1" />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              data-testid="button-cancel-edit"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!formData.title.trim() || updateEventMutation.isPending}
+              data-testid="button-update-event"
+            >
+              {updateEventMutation.isPending ? "Updating..." : "Update"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
