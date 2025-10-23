@@ -31,6 +31,8 @@ A comprehensive productivity and learning platform designed by students, for stu
 
 ## 🚀 Getting Started
 
+> **Want to host this on GitHub?** See [GITHUB_SETUP.md](./GITHUB_SETUP.md) for step-by-step instructions!
+
 ### Prerequisites
 - Node.js 18+ and npm
 - PostgreSQL database (or use a free hosted option like Neon, Supabase, or Railway)
@@ -114,28 +116,45 @@ More than enough for personal use!
 
 ## 🚢 Deployment
 
-### Deploy to Vercel (Recommended for Frontend)
-This app has a backend, so you'll need to deploy separately or use a platform that supports full-stack apps.
+This app deploys directly from your GitHub repository! Once you push your code to GitHub, you can deploy to any of these platforms with automatic deployments on every push:
 
-### Deploy to Railway (Full-Stack)
-1. Create a [Railway](https://railway.app/) account
-2. Create a new project from GitHub
-3. Add a PostgreSQL database
-4. Set environment variables in Railway dashboard
+### 🎯 Railway (Recommended) ⭐
+**Best for Express.js + PostgreSQL apps**
+1. Push code to GitHub
+2. Connect [Railway](https://railway.app/) to your GitHub repo
+3. Railway auto-detects the setup (uses `railway.json`)
+4. Add PostgreSQL database
+5. Set `GEMINI_API_KEY` environment variable
+6. Deploy! 
+
+Free $5/month credit - plenty for student projects.
+
+### 🎨 Render
+**Free tier with PostgreSQL included**
+1. Push code to GitHub  
+2. Connect [Render](https://render.com/) to your GitHub repo
+3. Render uses `render.yaml` for auto-configuration
+4. Set `GEMINI_API_KEY` environment variable
 5. Deploy!
 
-### Deploy to Render (Full-Stack)
-1. Create a [Render](https://render.com/) account
-2. Create a new Web Service from GitHub
-3. Add a PostgreSQL database
-4. Set environment variables
-5. Deploy!
+Automatic SSL, zero-downtime deploys.
 
-### Deploy on Replit (Easiest)
-This project is already configured for Replit:
-1. Click "Run" to start the development server
-2. Click "Publish" to deploy to production
-3. Add your environment variables in the Secrets/Deployments tab
+### 🚁 Fly.io
+**Global deployment with free tier**
+```bash
+fly launch # Auto-detects your app
+fly postgres create # Add database
+fly deploy # Go live!
+```
+
+### 📘 Detailed Instructions
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete step-by-step guides, troubleshooting, and platform comparisons.
+
+### 🎓 Deploy on Replit (Already Configured)
+This project is already set up on Replit:
+1. Click "Publish" to deploy to production
+2. Add environment variables in Deployments settings
+3. Done!
 
 ## 📁 Project Structure
 
