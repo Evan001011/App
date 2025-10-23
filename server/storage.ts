@@ -7,9 +7,12 @@ import {
   type InsertTask,
   type ChatMessage,
   type InsertChatMessage,
+  type Conversation,
+  type InsertConversation,
   calendarEvents,
   tasks,
   chatMessages,
+  conversations,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
@@ -30,8 +33,14 @@ export interface IStorage {
   updateTask(id: string, task: Partial<Task>): Promise<Task | undefined>;
   deleteTask(id: string): Promise<boolean>;
 
+  // Conversations
+  getConversations(subject: string): Promise<Conversation[]>;
+  getConversation(id: string): Promise<Conversation | undefined>;
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  deleteConversation(id: string): Promise<boolean>;
+
   // Chat Messages
-  getChatMessages(subject: string, limit?: number): Promise<ChatMessage[]>;
+  getChatMessages(conversationId: string, limit?: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 }
 
@@ -142,12 +151,46 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  // Conversations
+  async getConversations(subject: string): Promise<Conversation[]> {
+    const convos = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.subject, subject))
+      .orderBy(desc(conversations.createdAt));
+    return convos;
+  }
+
+  async getConversation(id: string): Promise<Conversation | undefined> {
+    const [convo] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id));
+    return convo || undefined;
+  }
+
+  async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
+    const [convo] = await db
+      .insert(conversations)
+      .values(insertConversation)
+      .returning();
+    return convo;
+  }
+
+  async deleteConversation(id: string): Promise<boolean> {
+    const result = await db
+      .delete(conversations)
+      .where(eq(conversations.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
   // Chat Messages
-  async getChatMessages(subject: string, limit = 50): Promise<ChatMessage[]> {
+  async getChatMessages(conversationId: string, limit = 50): Promise<ChatMessage[]> {
     const messages = await db
       .select()
       .from(chatMessages)
-      .where(eq(chatMessages.subject, subject))
+      .where(eq(chatMessages.conversationId, conversationId))
       .orderBy(desc(chatMessages.sequence))
       .limit(limit);
     

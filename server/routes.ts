@@ -5,6 +5,7 @@ import { getChatResponse } from "./gemini";
 import {
   insertCalendarEventSchema,
   insertTaskSchema,
+  insertConversationSchema,
   type AISubject,
 } from "@shared/schema";
 
@@ -113,11 +114,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Study Chat API
-  app.get("/api/study/messages/:subject", async (req, res) => {
+  // AI Study Conversations API
+  app.get("/api/study/conversations/:subject", async (req, res) => {
     try {
       const { subject } = req.params;
-      const messages = await storage.getChatMessages(subject);
+      const conversations = await storage.getConversations(subject);
+      res.json(conversations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post("/api/study/conversations", async (req, res) => {
+    try {
+      const validated = insertConversationSchema.parse(req.body);
+      const conversation = await storage.createConversation(validated);
+      res.status(201).json(conversation);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid conversation data" });
+    }
+  });
+
+  app.delete("/api/study/conversations/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteConversation(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  // AI Study Messages API
+  app.get("/api/study/messages/:conversationId", async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const messages = await storage.getChatMessages(conversationId);
       res.json(messages);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch chat messages" });
@@ -126,22 +161,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/study/chat", async (req, res) => {
     try {
-      const { subject, message, history } = req.body as {
+      const { conversationId, subject, message, history } = req.body as {
+        conversationId: string;
         subject: AISubject;
         message: string;
         history: Array<{ role: "user" | "assistant"; content: string }>;
       };
 
-      if (!subject || !message) {
-        return res.status(400).json({ error: "Subject and message are required" });
+      if (!conversationId || !subject || !message) {
+        return res.status(400).json({ error: "ConversationId, subject, and message are required" });
       }
 
       // Store user message first with current timestamp
       const userTimestamp = new Date().toISOString();
       await storage.createChatMessage({
+        conversationId,
         role: "user",
         content: message,
-        subject,
         timestamp: userTimestamp,
       });
 
@@ -151,9 +187,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store assistant message with its own timestamp to ensure chronological ordering
       const assistantTimestamp = new Date().toISOString();
       await storage.createChatMessage({
+        conversationId,
         role: "assistant",
         content: reply,
-        subject,
         timestamp: assistantTimestamp,
       });
 

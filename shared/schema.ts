@@ -37,13 +37,28 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 
+// AI Conversations Schema
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subject: text("subject").notNull(), // math_science, writing, social_studies, coding
+  title: text("title").notNull(),
+  createdAt: text("created_at").notNull(), // ISO string
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+});
+
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
 // AI Chat Messages Schema
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
   sequence: serial("sequence").notNull(),
   role: text("role").notNull(), // user, assistant
   content: text("content").notNull(),
-  subject: text("subject").notNull(), // math_science, writing, social_studies, coding
   timestamp: text("timestamp").notNull(), // ISO string
 });
 
