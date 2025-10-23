@@ -64,11 +64,48 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
     mutationFn: async () => {
       return await apiRequest("DELETE", `/api/calendar/${event.id}`, {});
     },
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/calendar"] });
+      
+      // Snapshot the previous values
+      const previousCalendar = queryClient.getQueriesData({ queryKey: ["/api/calendar"] });
+      const previousUpcoming = queryClient.getQueryData(["/api/calendar/upcoming"]);
+      
+      // Optimistically remove the event from all calendar queries
+      queryClient.setQueriesData<CalendarEvent[]>(
+        { queryKey: ["/api/calendar"] },
+        (old) => old?.filter((e) => e.id !== event.id) ?? []
+      );
+      
+      // Optimistically remove from upcoming events
+      queryClient.setQueryData<CalendarEvent[]>(
+        ["/api/calendar/upcoming"],
+        (old) => old?.filter((e) => e.id !== event.id) ?? []
+      );
+      
+      // Return context for rollback
+      return { previousCalendar, previousUpcoming };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousCalendar) {
+        context.previousCalendar.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousUpcoming) {
+        queryClient.setQueryData(["/api/calendar/upcoming"], context.previousUpcoming);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/calendar/upcoming"] });
       toast({ title: "Event deleted" });
       onOpenChange(false);
+    },
+    onSettled: () => {
+      // Refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calendar/upcoming"] });
     },
   });
 

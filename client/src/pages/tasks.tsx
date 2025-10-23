@@ -119,9 +119,34 @@ export default function Tasks() {
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/tasks/${id}`, {});
     },
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/tasks", selectedDate] });
+      
+      // Snapshot the previous value
+      const previousTasks = queryClient.getQueryData<Task[]>(["/api/tasks", selectedDate]);
+      
+      // Optimistically remove the task
+      queryClient.setQueryData<Task[]>(
+        ["/api/tasks", selectedDate],
+        (old) => old?.filter((t) => t.id !== id) ?? []
+      );
+      
+      // Return context for rollback
+      return { previousTasks };
+    },
+    onError: (_err, _id, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["/api/tasks", selectedDate], context.previousTasks);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", selectedDate] });
       toast({ title: "Task deleted" });
+    },
+    onSettled: () => {
+      // Refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks", selectedDate] });
     },
   });
 

@@ -61,19 +61,42 @@ export default function Study() {
     },
   });
 
-  // Delete conversation mutation
+  // Delete conversation mutation with optimistic update
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId: string) => {
       await apiRequest("DELETE", `/api/study/conversations/${conversationId}`);
       return conversationId;
     },
-    onSuccess: async (deletedConversationId) => {
-      // If we deleted the active conversation, clear it
-      if (deletedConversationId === activeConversationId) {
+    onMutate: async (conversationId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/study/conversations", selectedSubject] });
+      
+      // Snapshot the previous value
+      const previousConversations = queryClient.getQueryData<Conversation[]>(["/api/study/conversations", selectedSubject]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData<Conversation[]>(
+        ["/api/study/conversations", selectedSubject],
+        (old) => old?.filter((c) => c.id !== conversationId) ?? []
+      );
+      
+      // If we deleted the active conversation, clear it immediately
+      if (conversationId === activeConversationId) {
         setActiveConversationId(null);
       }
-      // Force immediate refetch of conversations list
-      await queryClient.refetchQueries({ queryKey: ["/api/study/conversations", selectedSubject] });
+      
+      // Return context with the previous data for rollback
+      return { previousConversations };
+    },
+    onError: (_err, _conversationId, context) => {
+      // Rollback on error
+      if (context?.previousConversations) {
+        queryClient.setQueryData(["/api/study/conversations", selectedSubject], context.previousConversations);
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: ["/api/study/conversations", selectedSubject] });
     },
   });
 
