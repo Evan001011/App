@@ -8,6 +8,7 @@ export const subjects = pgTable("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   color: text("color").notNull(), // hex color code
+  aiCategory: text("ai_category"), // Optional: maps to AI tutor category for study assistance
   createdAt: text("created_at").notNull(), // ISO string
 });
 
@@ -88,6 +89,10 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 // Event types
 export const eventTypes = ["assignment", "quiz", "test", "deadline"] as const;
 export type EventType = typeof eventTypes[number];
+
+// AI Subject Categories - for AI Study Assistant
+export const aiCategories = ["math_science", "writing", "social_studies", "coding", "general"] as const;
+export type AICategory = typeof aiCategories[number];
 
 // Learning Preferences Schema
 export const explanationStyles = ["step_by_step", "analogies", "visual_examples", "concise", "socratic"] as const;

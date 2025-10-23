@@ -7,7 +7,10 @@ import {
   insertTaskSchema,
   insertConversationSchema,
   insertLearningPreferenceSchema,
-  type AISubject,
+  insertSubjectSchema,
+  insertFlashcardSetSchema,
+  insertFlashcardSchema,
+  type AICategory,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -115,11 +118,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Study Conversations API
-  app.get("/api/study/conversations/:subject", async (req, res) => {
+  // Subjects API
+  app.get("/api/subjects", async (req, res) => {
     try {
-      const { subject } = req.params;
-      const conversations = await storage.getConversations(subject);
+      const subjects = await storage.getSubjects();
+      res.json(subjects);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch subjects" });
+    }
+  });
+
+  app.post("/api/subjects", async (req, res) => {
+    try {
+      const validated = insertSubjectSchema.parse(req.body);
+      const subject = await storage.createSubject(validated);
+      res.status(201).json(subject);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid subject data" });
+    }
+  });
+
+  app.patch("/api/subjects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateSubject(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update subject" });
+    }
+  });
+
+  app.delete("/api/subjects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSubject(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete subject" });
+    }
+  });
+
+  // AI Study Conversations API
+  app.get("/api/study/conversations/:subjectId", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+      const conversations = await storage.getConversations(subjectId);
       res.json(conversations);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch conversations" });
@@ -162,15 +211,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/study/chat", async (req, res) => {
     try {
-      const { conversationId, subject, message, history } = req.body as {
+      const { conversationId, subjectId, aiCategory, message, history } = req.body as {
         conversationId: string;
-        subject: AISubject;
+        subjectId: string;
+        aiCategory: AICategory;
         message: string;
         history: Array<{ role: "user" | "assistant"; content: string }>;
       };
 
-      if (!conversationId || !subject || !message) {
-        return res.status(400).json({ error: "ConversationId, subject, and message are required" });
+      if (!conversationId || !subjectId || !aiCategory || !message) {
+        return res.status(400).json({ error: "ConversationId, subjectId, aiCategory, and message are required" });
       }
 
       // Store user message first with current timestamp
@@ -183,10 +233,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Fetch learning preferences for this subject
-      const preferences = await storage.getLearningPreference(subject);
+      const preferences = await storage.getLearningPreference(subjectId);
       
       // Get AI response with personalized preferences
-      const reply = await getChatResponse(subject, history, preferences ? {
+      const reply = await getChatResponse(aiCategory, history, preferences ? {
         explanationStyle: preferences.explanationStyle,
         complexityLevel: preferences.complexityLevel,
         customInstructions: preferences.customInstructions,
@@ -209,10 +259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Learning Preferences API
-  app.get("/api/preferences/:subject", async (req, res) => {
+  app.get("/api/preferences/:subjectId", async (req, res) => {
     try {
-      const { subject } = req.params;
-      const preference = await storage.getLearningPreference(subject);
+      const { subjectId } = req.params;
+      const preference = await storage.getLearningPreference(subjectId);
       if (!preference) {
         return res.json(null);
       }
@@ -229,6 +279,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(preference);
     } catch (error) {
       res.status(400).json({ error: "Invalid preference data" });
+    }
+  });
+
+  // Flashcard Sets API
+  app.get("/api/flashcards/sets", async (req, res) => {
+    try {
+      const sets = await storage.getAllFlashcardSets();
+      res.json(sets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcard sets" });
+    }
+  });
+
+  app.get("/api/flashcards/sets/subject/:subjectId", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+      const sets = await storage.getFlashcardSets(subjectId);
+      res.json(sets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcard sets" });
+    }
+  });
+
+  app.post("/api/flashcards/sets", async (req, res) => {
+    try {
+      const validated = insertFlashcardSetSchema.parse(req.body);
+      const set = await storage.createFlashcardSet(validated);
+      res.status(201).json(set);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid flashcard set data" });
+    }
+  });
+
+  app.patch("/api/flashcards/sets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateFlashcardSet(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Flashcard set not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update flashcard set" });
+    }
+  });
+
+  app.delete("/api/flashcards/sets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFlashcardSet(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Flashcard set not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete flashcard set" });
+    }
+  });
+
+  // Flashcards API
+  app.get("/api/flashcards/:setId", async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const cards = await storage.getFlashcards(setId);
+      res.json(cards);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcards" });
+    }
+  });
+
+  app.post("/api/flashcards", async (req, res) => {
+    try {
+      const validated = insertFlashcardSchema.parse(req.body);
+      const card = await storage.createFlashcard(validated);
+      res.status(201).json(card);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid flashcard data" });
+    }
+  });
+
+  app.patch("/api/flashcards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateFlashcard(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Flashcard not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update flashcard" });
+    }
+  });
+
+  app.delete("/api/flashcards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFlashcard(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Flashcard not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete flashcard" });
     }
   });
 
