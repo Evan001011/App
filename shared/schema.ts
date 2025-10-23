@@ -3,13 +3,29 @@ import { pgTable, text, varchar, boolean, integer, timestamp, serial } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Subjects Schema (Customizable by user)
+export const subjects = pgTable("subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g. "Math", "Biology", "Spanish"
+  color: text("color").notNull(), // hex color like "#3b82f6"
+  sortOrder: integer("sort_order").notNull().default(0), // for sorting
+  createdAt: text("created_at").notNull(), // ISO string
+});
+
+export const insertSubjectSchema = createInsertSchema(subjects).omit({
+  id: true,
+});
+
+export type InsertSubject = z.infer<typeof insertSubjectSchema>;
+export type Subject = typeof subjects.$inferSelect;
+
 // Calendar Events Schema
 export const calendarEvents = pgTable("calendar_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description"),
   date: text("date").notNull(), // YYYY-MM-DD format
-  subject: text("subject").notNull(), // math, science, writing, social_studies, coding, other
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }), // link to subjects table
   eventType: text("event_type").notNull(), // assignment, quiz, test, deadline
 });
 
@@ -27,7 +43,7 @@ export const tasks = pgTable("tasks", {
   completed: boolean("completed").notNull().default(false),
   date: text("date").notNull(), // YYYY-MM-DD format
   order: integer("order").notNull().default(0),
-  subject: text("subject"), // optional subject category
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }), // link to subjects table
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({
@@ -70,10 +86,6 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
-// Subject types for color coding
-export const subjects = ["math", "science", "writing", "social_studies", "coding", "other"] as const;
-export type Subject = typeof subjects[number];
-
 export const eventTypes = ["assignment", "quiz", "test", "deadline"] as const;
 export type EventType = typeof eventTypes[number];
 
@@ -102,3 +114,35 @@ export const insertLearningPreferenceSchema = createInsertSchema(learningPrefere
 
 export type InsertLearningPreference = z.infer<typeof insertLearningPreferenceSchema>;
 export type LearningPreference = typeof learningPreferences.$inferSelect;
+
+// Flashcards Schema
+export const flashcards = pgTable("flashcards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
+  front: text("front").notNull(), // Question/prompt side
+  back: text("back").notNull(), // Answer side
+  sortOrder: integer("sort_order").notNull().default(0), // for sorting within subject
+  createdAt: text("created_at").notNull(), // ISO string
+});
+
+export const insertFlashcardSchema = createInsertSchema(flashcards).omit({
+  id: true,
+});
+
+export type InsertFlashcard = z.infer<typeof insertFlashcardSchema>;
+export type Flashcard = typeof flashcards.$inferSelect;
+
+// Daily Streaks Schema
+export const dailyStreaks = pgTable("daily_streaks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: text("date").notNull().unique(), // YYYY-MM-DD format
+  completed: boolean("completed").notNull().default(false), // true if at least one assignment completed
+  assignmentsCompleted: integer("assignments_completed").notNull().default(0), // count of assignments completed that day
+});
+
+export const insertDailyStreakSchema = createInsertSchema(dailyStreaks).omit({
+  id: true,
+});
+
+export type InsertDailyStreak = z.infer<typeof insertDailyStreakSchema>;
+export type DailyStreak = typeof dailyStreaks.$inferSelect;

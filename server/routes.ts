@@ -7,6 +7,9 @@ import {
   insertTaskSchema,
   insertConversationSchema,
   insertLearningPreferenceSchema,
+  insertSubjectSchema,
+  insertFlashcardSchema,
+  insertDailyStreakSchema,
   type AISubject,
 } from "@shared/schema";
 
@@ -229,6 +232,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(preference);
     } catch (error) {
       res.status(400).json({ error: "Invalid preference data" });
+    }
+  });
+
+  // Subjects API
+  app.get("/api/subjects", async (req, res) => {
+    try {
+      const subjects = await storage.getSubjects();
+      res.json(subjects);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch subjects" });
+    }
+  });
+
+  app.post("/api/subjects", async (req, res) => {
+    try {
+      const validated = insertSubjectSchema.parse(req.body);
+      const subject = await storage.createSubject(validated);
+      res.status(201).json(subject);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid subject data" });
+    }
+  });
+
+  app.patch("/api/subjects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateSubject(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update subject" });
+    }
+  });
+
+  app.delete("/api/subjects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSubject(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete subject" });
+    }
+  });
+
+  // Flashcards API
+  app.get("/api/flashcards", async (req, res) => {
+    try {
+      const { subjectId } = req.query;
+      const flashcards = await storage.getFlashcards(subjectId as string);
+      res.json(flashcards);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcards" });
+    }
+  });
+
+  app.post("/api/flashcards", async (req, res) => {
+    try {
+      const validated = insertFlashcardSchema.parse(req.body);
+      const flashcard = await storage.createFlashcard(validated);
+      res.status(201).json(flashcard);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid flashcard data" });
+    }
+  });
+
+  app.patch("/api/flashcards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateFlashcard(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Flashcard not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update flashcard" });
+    }
+  });
+
+  app.delete("/api/flashcards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFlashcard(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Flashcard not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete flashcard" });
+    }
+  });
+
+  // Streaks API
+  app.get("/api/streaks/current", async (req, res) => {
+    try {
+      const currentStreak = await storage.getCurrentStreak();
+      res.json({ currentStreak });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch current streak" });
+    }
+  });
+
+  app.get("/api/streaks/:startDate/:endDate", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.params;
+      const streaks = await storage.getDailyStreaks(startDate, endDate);
+      res.json(streaks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch streaks" });
+    }
+  });
+
+  app.put("/api/streaks", async (req, res) => {
+    try {
+      const validated = insertDailyStreakSchema.parse(req.body);
+      const streak = await storage.upsertDailyStreak(validated);
+      res.json(streak);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid streak data" });
     }
   });
 

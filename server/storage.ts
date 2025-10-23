@@ -11,11 +11,20 @@ import {
   type InsertConversation,
   type LearningPreference,
   type InsertLearningPreference,
+  type Subject,
+  type InsertSubject,
+  type Flashcard,
+  type InsertFlashcard,
+  type DailyStreak,
+  type InsertDailyStreak,
   calendarEvents,
   tasks,
   chatMessages,
   conversations,
   learningPreferences,
+  subjects,
+  flashcards,
+  dailyStreaks,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
@@ -50,6 +59,26 @@ export interface IStorage {
   getLearningPreference(subject: string): Promise<LearningPreference | undefined>;
   upsertLearningPreference(preference: InsertLearningPreference): Promise<LearningPreference>;
   deleteLearningPreference(id: string): Promise<boolean>;
+
+  // Subjects
+  getSubjects(): Promise<Subject[]>;
+  getSubject(id: string): Promise<Subject | undefined>;
+  createSubject(subject: InsertSubject): Promise<Subject>;
+  updateSubject(id: string, subject: Partial<Subject>): Promise<Subject | undefined>;
+  deleteSubject(id: string): Promise<boolean>;
+
+  // Flashcards
+  getFlashcards(subjectId?: string): Promise<Flashcard[]>;
+  getFlashcard(id: string): Promise<Flashcard | undefined>;
+  createFlashcard(flashcard: InsertFlashcard): Promise<Flashcard>;
+  updateFlashcard(id: string, flashcard: Partial<Flashcard>): Promise<Flashcard | undefined>;
+  deleteFlashcard(id: string): Promise<boolean>;
+
+  // Daily Streaks
+  getDailyStreak(date: string): Promise<DailyStreak | undefined>;
+  getDailyStreaks(startDate: string, endDate: string): Promise<DailyStreak[]>;
+  upsertDailyStreak(streak: InsertDailyStreak): Promise<DailyStreak>;
+  getCurrentStreak(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -251,6 +280,155 @@ export class DatabaseStorage implements IStorage {
       .where(eq(learningPreferences.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  // Subjects
+  async getSubjects(): Promise<Subject[]> {
+    const subjectList = await db
+      .select()
+      .from(subjects)
+      .orderBy(subjects.sortOrder);
+    return subjectList;
+  }
+
+  async getSubject(id: string): Promise<Subject | undefined> {
+    const [subject] = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.id, id));
+    return subject || undefined;
+  }
+
+  async createSubject(insertSubject: InsertSubject): Promise<Subject> {
+    const [subject] = await db
+      .insert(subjects)
+      .values(insertSubject)
+      .returning();
+    return subject;
+  }
+
+  async updateSubject(id: string, updates: Partial<Subject>): Promise<Subject | undefined> {
+    const [updated] = await db
+      .update(subjects)
+      .set(updates)
+      .where(eq(subjects.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteSubject(id: string): Promise<boolean> {
+    const result = await db
+      .delete(subjects)
+      .where(eq(subjects.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Flashcards
+  async getFlashcards(subjectId?: string): Promise<Flashcard[]> {
+    if (subjectId) {
+      return await db
+        .select()
+        .from(flashcards)
+        .where(eq(flashcards.subjectId, subjectId))
+        .orderBy(flashcards.sortOrder);
+    }
+    return await db
+      .select()
+      .from(flashcards)
+      .orderBy(flashcards.sortOrder);
+  }
+
+  async getFlashcard(id: string): Promise<Flashcard | undefined> {
+    const [flashcard] = await db
+      .select()
+      .from(flashcards)
+      .where(eq(flashcards.id, id));
+    return flashcard || undefined;
+  }
+
+  async createFlashcard(insertFlashcard: InsertFlashcard): Promise<Flashcard> {
+    const [flashcard] = await db
+      .insert(flashcards)
+      .values(insertFlashcard)
+      .returning();
+    return flashcard;
+  }
+
+  async updateFlashcard(id: string, updates: Partial<Flashcard>): Promise<Flashcard | undefined> {
+    const [updated] = await db
+      .update(flashcards)
+      .set(updates)
+      .where(eq(flashcards.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteFlashcard(id: string): Promise<boolean> {
+    const result = await db
+      .delete(flashcards)
+      .where(eq(flashcards.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Daily Streaks
+  async getDailyStreak(date: string): Promise<DailyStreak | undefined> {
+    const [streak] = await db
+      .select()
+      .from(dailyStreaks)
+      .where(eq(dailyStreaks.date, date));
+    return streak || undefined;
+  }
+
+  async getDailyStreaks(startDate: string, endDate: string): Promise<DailyStreak[]> {
+    return await db
+      .select()
+      .from(dailyStreaks)
+      .where(and(
+        gte(dailyStreaks.date, startDate),
+        lte(dailyStreaks.date, endDate)
+      ))
+      .orderBy(dailyStreaks.date);
+  }
+
+  async upsertDailyStreak(insertStreak: InsertDailyStreak): Promise<DailyStreak> {
+    const existing = await this.getDailyStreak(insertStreak.date);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(dailyStreaks)
+        .set(insertStreak)
+        .where(eq(dailyStreaks.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(dailyStreaks)
+        .values(insertStreak)
+        .returning();
+      return created;
+    }
+  }
+
+  async getCurrentStreak(): Promise<number> {
+    const today = new Date().toISOString().split("T")[0];
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+    
+    while (true) {
+      const dateStr = checkDate.toISOString().split("T")[0];
+      const streak = await this.getDailyStreak(dateStr);
+      
+      if (!streak || !streak.completed) {
+        break;
+      }
+      
+      currentStreak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    return currentStreak;
   }
 }
 

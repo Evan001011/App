@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { InsertCalendarEvent } from "@shared/schema";
+import type { InsertCalendarEvent, Subject } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getToday } from "@/lib/utils";
@@ -30,17 +30,34 @@ interface AddEventDialogProps {
 
 export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
   const { toast } = useToast();
+  
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+  });
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: getToday(),
-    subject: "math",
+    subjectId: undefined as string | undefined,
     eventType: "assignment",
   });
 
+  // Set default subject when subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && !formData.subjectId) {
+      setFormData(prev => ({ ...prev, subjectId: subjects[0].id }));
+    }
+  }, [subjects]);
+
   const createEventMutation = useMutation({
     mutationFn: async (data: InsertCalendarEvent) => {
-      return await apiRequest("POST", "/api/calendar", data);
+      // Convert empty subjectId to undefined for database
+      const payload = {
+        ...data,
+        subjectId: data.subjectId || undefined,
+      };
+      return await apiRequest("POST", "/api/calendar", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
@@ -51,7 +68,7 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
         title: "",
         description: "",
         date: getToday(),
-        subject: "math",
+        subjectId: subjects[0]?.id,
         eventType: "assignment",
       });
     },
@@ -107,19 +124,18 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
             <div>
               <Label htmlFor="subject">Subject</Label>
               <Select
-                value={formData.subject}
-                onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                value={formData.subjectId}
+                onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
               >
                 <SelectTrigger data-testid="select-event-subject">
-                  <SelectValue />
+                  <SelectValue placeholder="Select a subject..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="math">Math</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="writing">Writing</SelectItem>
-                  <SelectItem value="social_studies">Social Studies</SelectItem>
-                  <SelectItem value="coding">Coding</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
