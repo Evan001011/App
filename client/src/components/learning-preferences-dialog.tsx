@@ -47,7 +47,7 @@ export function LearningPreferencesDialog({
     enabled: open && !!subject,
   });
 
-  // Update form when preferences load
+  // Update form when preferences load or subject changes
   useEffect(() => {
     if (preference) {
       setFormData({
@@ -55,8 +55,15 @@ export function LearningPreferencesDialog({
         complexityLevel: preference.complexityLevel || "",
         customInstructions: preference.customInstructions || "",
       });
+    } else {
+      // Reset form when no preference exists for this subject
+      setFormData({
+        explanationStyle: "",
+        complexityLevel: "",
+        customInstructions: "",
+      });
     }
-  }, [preference]);
+  }, [preference, subject]);
 
   const savePreferencesMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
