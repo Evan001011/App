@@ -57,17 +57,21 @@ Help students learn how to learn through better organization, structured plannin
 
 ### Backend (Express + TypeScript)
 - **Server**: Express.js with TypeScript
-- **Storage**: In-memory storage (MemStorage) for MVP
+- **Database**: PostgreSQL (Neon) with Drizzle ORM for full data persistence
+- **Storage**: DatabaseStorage class implementing IStorage interface with Drizzle queries
 - **AI Integration**: Google Gemini 2.5 Flash (free) with subject-specific system prompts
 - **API Routes**:
   - `/api/calendar` - Calendar events CRUD
   - `/api/tasks` - Tasks CRUD
   - `/api/study/chat` - AI chat responses
+  - `/api/study/messages/:subject` - Retrieve chat history
 
-### Data Models
-- **CalendarEvent**: title, description, date, subject, eventType
-- **Task**: title, completed, date, order, subject
-- **ChatMessage**: role, content, subject, timestamp
+### Database Schema (PostgreSQL + Drizzle)
+- **calendar_events**: id (uuid), title, description, date, subject, eventType
+- **tasks**: id (uuid), title, completed, date, order, subject
+- **chat_messages**: id (uuid), sequence (serial), role, content, subject, timestamp
+  - sequence column ensures deterministic chronological ordering
+  - sorted by sequence to guarantee user/assistant message order
 
 ## API Endpoints
 
@@ -85,7 +89,8 @@ Help students learn how to learn through better organization, structured plannin
 - `DELETE /api/tasks/:id` - Delete task
 
 ### AI Study
-- `POST /api/study/chat` - Send message to AI tutor and get response
+- `GET /api/study/messages/:subject` - Get chat history for subject (math_science, writing, social_studies, coding)
+- `POST /api/study/chat` - Send message to AI tutor and get response (also saves both user and assistant messages to database)
 
 ## Environment Variables
 - `GEMINI_API_KEY` - Free Google Gemini API key for AI study assistant (get at https://ai.google.dev/)
@@ -137,10 +142,14 @@ When you publish/deploy Studently to production:
 
 **Why Gemini?** Google Gemini 2.5 Flash is completely free with generous limits (15 requests/minute, 1,500/day, 1 million/month), making it perfect for student projects!
 
+## Recent Changes (October 2025)
+- ✅ **Database Migration Complete**: Migrated from in-memory storage to PostgreSQL with Drizzle ORM
+- ✅ **Full Data Persistence**: Calendar events, tasks, and AI chat history now persist across sessions and deployments
+- ✅ **Chat Message Ordering Fix**: Added auto-incrementing sequence column to ensure deterministic chronological message order
+
 ## Future Enhancements (Next Phase)
 - AI chat streaming responses for better UX (currently returns full responses)
 - User authentication with Replit Auth
-- Persistent database storage
 - Smart reminders based on study patterns
 - Spaced repetition for topic review
 - Calendar import/export (Google Calendar, iCal)
@@ -156,16 +165,18 @@ client/
     pages/          # Page components (dashboard, calendar, tasks, study)
     lib/            # Utilities and query client
 server/
+  db.ts             # PostgreSQL database connection (Neon + Drizzle)
   routes.ts         # API endpoint definitions
-  storage.ts        # In-memory storage implementation
-  openai.ts         # OpenAI integration with subject prompts
+  storage.ts        # DatabaseStorage implementation with Drizzle queries
+  gemini.ts         # Google Gemini AI integration with subject prompts
 shared/
-  schema.ts         # Shared TypeScript types and Zod schemas
+  schema.ts         # Drizzle schema definitions and Zod validation schemas
 ```
 
 ## Notes
-- The app uses in-memory storage, so data resets on server restart
-- AI responses are powered by Google Gemini 2.5 Flash (free!) with educational system prompts
+- Data persists across sessions using PostgreSQL database (Neon-hosted)
+- AI responses powered by Google Gemini 2.5 Flash (free!) with educational system prompts
 - Each subject mode has tailored guidance to encourage learning
-- The design follows modern productivity app aesthetics (Linear, Notion inspired)
+- Chat messages use auto-incrementing sequence for guaranteed chronological order
+- Design follows modern productivity app aesthetics (Linear, Notion inspired)
 - Gemini provides faster responses than OpenAI and is completely free for development
