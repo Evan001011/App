@@ -164,7 +164,7 @@ export class DatabaseStorage implements IStorage {
     const convos = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.subject, subject))
+      .where(eq(conversations.subjectId, subject))
       .orderBy(desc(conversations.createdAt));
     return convos;
   }
@@ -219,13 +219,13 @@ export class DatabaseStorage implements IStorage {
     const [pref] = await db
       .select()
       .from(learningPreferences)
-      .where(eq(learningPreferences.subject, subject));
+      .where(eq(learningPreferences.subjectId, subject));
     return pref || undefined;
   }
 
   async upsertLearningPreference(insertPreference: InsertLearningPreference): Promise<LearningPreference> {
     // First try to find existing preference for this subject
-    const existing = await this.getLearningPreference(insertPreference.subject);
+    const existing = await this.getLearningPreference(insertPreference.subjectId);
     
     if (existing) {
       // Update existing

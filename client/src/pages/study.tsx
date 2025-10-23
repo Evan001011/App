@@ -52,7 +52,7 @@ export default function Study() {
       const now = new Date().toISOString();
       const title = `Chat ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
       return await apiRequest<Conversation>("POST", "/api/study/conversations", {
-        subject: selectedSubject,
+        subjectId: selectedSubject,
         title,
         createdAt: now,
       });

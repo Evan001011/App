@@ -132,6 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversation = await storage.createConversation(validated);
       res.status(201).json(conversation);
     } catch (error) {
+      console.error("Failed to create conversation:", error);
       res.status(400).json({ error: "Invalid conversation data" });
     }
   });

@@ -68,7 +68,7 @@ export function LearningPreferencesDialog({
   const savePreferencesMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       return await apiRequest<LearningPreference>("PUT", "/api/preferences", {
-        subject,
+        subjectId: subject,
         explanationStyle: data.explanationStyle || null,
         complexityLevel: data.complexityLevel || null,
         customInstructions: data.customInstructions || null,

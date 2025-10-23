@@ -40,7 +40,7 @@ export type Task = typeof tasks.$inferSelect;
 // AI Conversations Schema
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  subject: text("subject").notNull(), // math_science, writing, social_studies, coding
+  subjectId: varchar("subject_id").notNull(), // math_science, writing, social_studies, coding
   title: text("title").notNull(),
   createdAt: text("created_at").notNull(), // ISO string
 });
@@ -89,7 +89,7 @@ export type ComplexityLevel = typeof complexityLevels[number];
 
 export const learningPreferences = pgTable("learning_preferences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  subject: text("subject").notNull(), // math_science, writing, social_studies, coding, or "general" for all subjects
+  subjectId: varchar("subject_id").notNull(), // math_science, writing, social_studies, coding, or "general" for all subjects
   explanationStyle: text("explanation_style"), // step_by_step, analogies, visual_examples, concise, socratic
   complexityLevel: text("complexity_level"), // beginner, intermediate, advanced
   customInstructions: text("custom_instructions"), // Free-form text for personalization
