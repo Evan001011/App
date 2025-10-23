@@ -2,6 +2,13 @@ import OpenAI from "openai";
 
 // This is using OpenAI's API - following the blueprint for javascript_openai integration
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+
+// Check if API key is configured
+if (!process.env.OPENAI_API_KEY) {
+  console.error("ERROR: OPENAI_API_KEY environment variable is not set!");
+  console.error("Please configure the OPENAI_API_KEY secret in your deployment settings.");
+}
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface ChatMessage {
@@ -63,6 +70,11 @@ export async function getChatResponse(
   subject: "math_science" | "writing" | "social_studies" | "coding",
   messages: ChatMessage[]
 ): Promise<string> {
+  // Check if API key is configured
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable in your deployment settings.");
+  }
+
   try {
     const systemPrompt = systemPrompts[subject];
     
@@ -81,6 +93,17 @@ export async function getChatResponse(
     return response.choices[0].message.content || "I'm having trouble responding right now. Could you rephrase your question?";
   } catch (error) {
     console.error("OpenAI API error:", error);
+    
+    // Provide more helpful error messages
+    if (error instanceof Error) {
+      if (error.message.includes("api_key")) {
+        throw new Error("OpenAI API key is invalid. Please check your OPENAI_API_KEY environment variable.");
+      }
+      if (error.message.includes("rate_limit")) {
+        throw new Error("OpenAI rate limit exceeded. Please try again in a moment.");
+      }
+    }
+    
     throw new Error("Failed to get AI response. Please try again.");
   }
 }

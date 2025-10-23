@@ -111,6 +111,28 @@ Help students learn how to learn through better organization, structured plannin
 - Maintains consistent spacing (p-2, p-4, p-6 system)
 - All interactive elements have proper data-testid attributes
 
+## Deployment Instructions
+
+### Publishing Your App
+When you publish/deploy Studently to production:
+
+1. **Configure Environment Variables:**
+   - Go to the Deployments tab in Replit
+   - Open your deployment settings
+   - Add the following secrets:
+     - `OPENAI_API_KEY`: Your OpenAI API key (required for AI Study features)
+     - `SESSION_SECRET`: A random string for session security
+
+2. **Redeploy:**
+   - After adding the secrets, redeploy your app
+   - The AI Study features will now work in production
+
+3. **Verify:**
+   - Test all AI subject modes to ensure they're working
+   - Check that calendar and tasks persist correctly
+
+**Important:** Development and production environments have separate secret configurations. Secrets set in development won't automatically transfer to production.
+
 ## Future Enhancements (Next Phase)
 - AI chat streaming responses for better UX (currently returns full responses)
 - User authentication with Replit Auth
