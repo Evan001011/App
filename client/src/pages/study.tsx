@@ -3,9 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Code, PenTool, Globe, Send, Loader2 } from "lucide-react";
-import type { AISubject, ChatMessage as DBChatMessage } from "@shared/schema";
-import { getSubjectLabel } from "@/lib/utils";
+import { BookOpen, Code, PenTool, Globe, Send, Loader2, Plus, Trash2, MessageSquare } from "lucide-react";
+import type { AISubject, ChatMessage as DBChatMessage, Conversation } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface ChatMessage {
@@ -15,12 +14,20 @@ interface ChatMessage {
 
 export default function Study() {
   const [selectedSubject, setSelectedSubject] = useState<AISubject>("math_science");
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: chatHistory = [], isLoading } = useQuery<DBChatMessage[]>({
-    queryKey: ["/api/study/messages", selectedSubject],
+  // Fetch conversations for the selected subject
+  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
+    queryKey: ["/api/study/conversations", selectedSubject],
     enabled: !!selectedSubject,
+  });
+
+  // Fetch messages for the active conversation
+  const { data: chatHistory = [], isLoading: messagesLoading } = useQuery<DBChatMessage[]>({
+    queryKey: ["/api/study/messages", activeConversationId],
+    enabled: !!activeConversationId,
   });
 
   const messages: ChatMessage[] = chatHistory.map((msg) => ({
@@ -28,9 +35,53 @@ export default function Study() {
     content: msg.content,
   }));
 
+  // Set active conversation when conversations load or subject changes
+  useEffect(() => {
+    if (conversations.length > 0 && !activeConversationId) {
+      setActiveConversationId(conversations[0].id);
+    } else if (conversations.length === 0) {
+      setActiveConversationId(null);
+    }
+  }, [conversations, activeConversationId]);
+
+  // Create new conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: async () => {
+      const now = new Date().toISOString();
+      const title = `Chat ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+      return await apiRequest<Conversation>("POST", "/api/study/conversations", {
+        subject: selectedSubject,
+        title,
+        createdAt: now,
+      });
+    },
+    onSuccess: (newConversation) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/conversations", selectedSubject] });
+      setActiveConversationId(newConversation.id);
+    },
+  });
+
+  // Delete conversation mutation
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      await apiRequest("DELETE", `/api/study/conversations/${conversationId}`);
+      return conversationId;
+    },
+    onSuccess: async (deletedConversationId) => {
+      // If we deleted the active conversation, clear it
+      if (deletedConversationId === activeConversationId) {
+        setActiveConversationId(null);
+      }
+      // Force immediate refetch of conversations list
+      await queryClient.refetchQueries({ queryKey: ["/api/study/conversations", selectedSubject] });
+    },
+  });
+
+  // Send chat message mutation
   const chatMutation = useMutation({
-    mutationFn: async (data: { subject: AISubject; message: string; history: ChatMessage[] }) => {
+    mutationFn: async (data: { conversationId: string; subject: AISubject; message: string; history: ChatMessage[] }) => {
       const response = await apiRequest<{ reply: string }>("POST", "/api/study/chat", {
+        conversationId: data.conversationId,
         subject: data.subject,
         message: data.message,
         history: data.history,
@@ -38,18 +89,19 @@ export default function Study() {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/study/messages", selectedSubject] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/messages", activeConversationId] });
     },
   });
 
   const handleSendMessage = () => {
-    if (!inputMessage.trim() || chatMutation.isPending) return;
+    if (!inputMessage.trim() || chatMutation.isPending || !activeConversationId) return;
 
     const userMessage: ChatMessage = { role: "user", content: inputMessage };
     const messageToSend = inputMessage;
     setInputMessage("");
 
     chatMutation.mutate({
+      conversationId: activeConversationId,
       subject: selectedSubject,
       message: messageToSend,
       history: [...messages, userMessage],
@@ -58,6 +110,15 @@ export default function Study() {
 
   const handleSubjectChange = (subject: AISubject) => {
     setSelectedSubject(subject);
+    setActiveConversationId(null);
+  };
+
+  const handleNewChat = () => {
+    createConversationMutation.mutate();
+  };
+
+  const handleDeleteConversation = (conversationId: string) => {
+    deleteConversationMutation.mutate(conversationId);
   };
 
   useEffect(() => {
@@ -80,7 +141,7 @@ export default function Study() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-semibold text-foreground mb-6" data-testid="text-study-title">
           AI Study Assistant
         </h1>
@@ -111,95 +172,174 @@ export default function Study() {
           })}
         </div>
 
-        <Card className="flex flex-col h-[600px]">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center max-w-md">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Conversations Sidebar */}
+          <Card className="lg:col-span-1 p-4 h-fit max-h-[600px] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleNewChat}
+                disabled={createConversationMutation.isPending}
+                data-testid="button-new-chat"
+              >
+                {createConversationMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {conversationsLoading ? (
+                <div className="text-xs text-muted-foreground">Loading...</div>
+              ) : conversations.length === 0 ? (
+                <div className="text-xs text-muted-foreground text-center py-8">
+                  No conversations yet. Click + to start a new chat!
+                </div>
+              ) : (
+                conversations.map((convo) => (
                   <div
-                    className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                    style={{
-                      backgroundColor: subjects.find((s) => s.value === selectedSubject)?.color,
-                      opacity: 0.2,
-                    }}
+                    key={convo.id}
+                    className={`flex items-center justify-between gap-2 p-3 rounded-lg cursor-pointer hover-elevate ${
+                      activeConversationId === convo.id ? "bg-accent" : ""
+                    }`}
+                    onClick={() => setActiveConversationId(convo.id)}
+                    data-testid={`conversation-item-${convo.id}`}
                   >
-                    {(() => {
-                      const Icon = subjects.find((s) => s.value === selectedSubject)?.icon;
-                      return Icon ? (
-                        <Icon
-                          className="h-8 w-8"
-                          style={{
-                            color: subjects.find((s) => s.value === selectedSubject)?.color,
-                          }}
-                        />
-                      ) : null;
-                    })()}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                      <span className="text-sm text-foreground truncate">{convo.title}</span>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteConversation(convo.id);
+                      }}
+                      disabled={deleteConversationMutation.isPending}
+                      data-testid={`button-delete-conversation-${convo.id}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <p className="text-muted-foreground" data-testid="text-welcome-message">
-                    {welcomeMessages[selectedSubject]}
+                ))
+              )}
+            </div>
+          </Card>
+
+          {/* Chat Area */}
+          <Card className="lg:col-span-3 flex flex-col h-[600px]">
+            {!activeConversationId ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center max-w-md p-6">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">
+                    Select a conversation or start a new chat to begin
                   </p>
+                  <Button onClick={handleNewChat} data-testid="button-start-new-chat">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Chat
+                  </Button>
                 </div>
               </div>
             ) : (
-              messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  data-testid={`message-${idx}`}
-                >
-                  <div
-                    className={`max-w-[80%] p-4 rounded-lg ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-accent text-accent-foreground"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  </div>
+              <>
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center max-w-md">
+                        <div
+                          className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                          style={{
+                            backgroundColor: subjects.find((s) => s.value === selectedSubject)?.color,
+                            opacity: 0.2,
+                          }}
+                        >
+                          {(() => {
+                            const Icon = subjects.find((s) => s.value === selectedSubject)?.icon;
+                            return Icon ? (
+                              <Icon
+                                className="h-8 w-8"
+                                style={{
+                                  color: subjects.find((s) => s.value === selectedSubject)?.color,
+                                }}
+                              />
+                            ) : null;
+                          })()}
+                        </div>
+                        <p className="text-muted-foreground" data-testid="text-welcome-message">
+                          {welcomeMessages[selectedSubject]}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    messages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                        data-testid={`message-${idx}`}
+                      >
+                        <div
+                          className={`max-w-[80%] p-4 rounded-lg ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-accent text-accent-foreground"
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {chatMutation.isPending && (
+                    <div className="flex justify-start">
+                      <div className="bg-accent text-accent-foreground p-4 rounded-lg flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Thinking...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
-              ))
-            )}
-            {chatMutation.isPending && (
-              <div className="flex justify-start">
-                <div className="bg-accent text-accent-foreground p-4 rounded-lg flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Thinking...</span>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          <div className="border-t p-4">
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Ask a question or share what you're working on..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                className="resize-none min-h-12"
-                disabled={chatMutation.isPending}
-                data-testid="input-chat-message"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || chatMutation.isPending}
-                size="icon"
-                data-testid="button-send-message"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Press Enter to send, Shift+Enter for new line
-            </p>
-          </div>
-        </Card>
+                <div className="border-t p-4">
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Ask a question or share what you're working on..."
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      className="resize-none min-h-12"
+                      disabled={chatMutation.isPending}
+                      data-testid="input-chat-message"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!inputMessage.trim() || chatMutation.isPending}
+                      size="icon"
+                      data-testid="button-send-message"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press Enter to send, Shift+Enter for new line
+                  </p>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
