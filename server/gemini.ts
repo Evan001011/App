@@ -71,18 +71,6 @@ When students ask for help:
 6. Be patient with mistakes - they're part of learning
 
 Focus on building their problem-solving skills and confidence.`,
-
-  general: `You are a knowledgeable and patient tutor helping students learn various subjects. Your goal is to help students understand concepts deeply and develop critical thinking skills.
-
-When a student asks a question:
-1. Provide clear, thoughtful explanations
-2. Ask clarifying questions to understand what they need
-3. Break down complex topics into manageable parts
-4. Encourage curiosity and deeper exploration
-5. Be supportive and encouraging
-6. Guide them to discover answers through thoughtful questioning
-
-Focus on teaching how to learn, not just what to learn.`,
 };
 
 function customizeSystemPrompt(
@@ -126,7 +114,7 @@ function customizeSystemPrompt(
 }
 
 export async function getChatResponse(
-  subject: "math_science" | "writing" | "social_studies" | "coding" | "general",
+  subject: "math_science" | "writing" | "social_studies" | "coding",
   messages: ChatMessage[],
   preferences?: LearningPreferences
 ): Promise<string> {
