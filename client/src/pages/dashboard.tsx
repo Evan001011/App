@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
-import { Calendar as CalendarIcon, CheckCircle2, Brain, TrendingUp } from "lucide-react";
+import { Calendar as CalendarIcon, CheckCircle2, Brain, TrendingUp, Settings } from "lucide-react";
 import { getToday, formatDate } from "@/lib/utils";
-import type { Task, CalendarEvent } from "@shared/schema";
+import type { Task, CalendarEvent, Subject } from "@shared/schema";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { SubjectManagerDialog } from "@/components/subject-manager-dialog";
 
 export default function Dashboard() {
   const today = getToday();
@@ -17,6 +18,17 @@ export default function Dashboard() {
     queryKey: ["/api/calendar/upcoming"],
   });
 
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+  });
+
+  const subjectsMap = new Map(subjects.map(s => [s.id, s]));
+  const getSubjectColor = (subjectId: string | null) => {
+    if (!subjectId) return "hsl(var(--muted-foreground))";
+    const subject = subjectsMap.get(subjectId);
+    return subject?.color || "hsl(var(--muted-foreground))";
+  };
+
   const completedCount = todayTasks.filter(t => t.completed).length;
   const totalCount = todayTasks.length;
   const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -24,13 +36,16 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-foreground mb-2" data-testid="text-dashboard-title">
-            Welcome to Studently
-          </h1>
-          <p className="text-sm text-muted-foreground" data-testid="text-current-date">
-            {formatDate(today)}
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-foreground mb-2" data-testid="text-dashboard-title">
+              Welcome to Studently
+            </h1>
+            <p className="text-sm text-muted-foreground" data-testid="text-current-date">
+              {formatDate(today)}
+            </p>
+          </div>
+          <SubjectManagerDialog />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -81,7 +96,7 @@ export default function Dashboard() {
                   <div key={event.id} className="flex items-start gap-2" data-testid={`event-item-${event.id}`}>
                     <div
                       className="w-1 h-12 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: getSubjectColor(event.subject) }}
+                      style={{ backgroundColor: getSubjectColor(event.subjectId) }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
@@ -144,16 +159,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
-
-function getSubjectColor(subject: string): string {
-  const colors: Record<string, string> = {
-    math: "hsl(var(--chart-1))",
-    science: "hsl(var(--chart-2))",
-    writing: "hsl(var(--chart-3))",
-    social_studies: "hsl(var(--chart-4))",
-    coding: "hsl(var(--chart-5))",
-    other: "hsl(var(--muted-foreground))",
-  };
-  return colors[subject] || colors.other;
 }
