@@ -21,10 +21,17 @@ export default function Study() {
 
   const chatMutation = useMutation({
     mutationFn: async (data: { subject: AISubject; message: string; history: ChatMessage[] }) => {
-      return await apiRequest("POST", "/api/study/chat", data);
+      const response = await apiRequest<{ reply: string }>("POST", "/api/study/chat", {
+        subject: data.subject,
+        message: data.message,
+        history: data.history,
+      });
+      return response;
     },
-    onSuccess: (response: { reply: string }) => {
-      setMessages((prev) => [...prev, { role: "assistant", content: response.reply }]);
+    onSuccess: (data) => {
+      if (data && data.reply) {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      }
     },
   });
 

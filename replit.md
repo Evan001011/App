@@ -11,7 +11,7 @@ Help students learn how to learn through better organization, structured plannin
 ### 1. Dashboard
 - **Today's Progress**: Visual progress bar showing task completion rate
 - **Upcoming Events**: Quick view of calendar events
-- **AI Study Assistant**: Direct access to subject-specific tutoring
+- **AI Study Assistant**: Direct access to subject-specific tutoring powered by Google Gemini
 - **Learning Journey Stats**: Overview of daily tasks, events, and completion rates
 
 ### 2. Monthly Calendar
@@ -31,6 +31,7 @@ Help students learn how to learn through better organization, structured plannin
 - **Drag Indicators**: Visual grip handles for future drag-and-drop functionality
 
 ### 4. AI Study Assistant
+- **Powered by Google Gemini 2.5 Flash**: Free, fast, and intelligent AI model
 - **Four Subject Modes**:
   - **Math & Science**: Step-by-step problem-solving guidance
   - **Writing**: Brainstorming, outlining, and revision help
@@ -39,6 +40,7 @@ Help students learn how to learn through better organization, structured plannin
 - **Conversational Interface**: Chat-based interaction with subject-specific AI tutors
 - **Context Retention**: Maintains conversation history for coherent guidance
 - **Educational Focus**: Guides students to understand concepts rather than providing direct answers
+- **Generous Free Tier**: 15 requests/minute, 1,500/day, 1 million/month
 
 ## Technical Architecture
 
@@ -56,7 +58,7 @@ Help students learn how to learn through better organization, structured plannin
 ### Backend (Express + TypeScript)
 - **Server**: Express.js with TypeScript
 - **Storage**: In-memory storage (MemStorage) for MVP
-- **AI Integration**: OpenAI GPT-5 with subject-specific system prompts
+- **AI Integration**: Google Gemini 2.5 Flash (free) with subject-specific system prompts
 - **API Routes**:
   - `/api/calendar` - Calendar events CRUD
   - `/api/tasks` - Tasks CRUD
@@ -86,7 +88,7 @@ Help students learn how to learn through better organization, structured plannin
 - `POST /api/study/chat` - Send message to AI tutor and get response
 
 ## Environment Variables
-- `OPENAI_API_KEY` - OpenAI API key for AI study assistant
+- `GEMINI_API_KEY` - Free Google Gemini API key for AI study assistant (get at https://ai.google.dev/)
 - `SESSION_SECRET` - Session secret for Express
 
 ## Pages and Routes
@@ -120,7 +122,7 @@ When you publish/deploy Studently to production:
    - Go to the Deployments tab in Replit
    - Open your deployment settings
    - Add the following secrets:
-     - `OPENAI_API_KEY`: Your OpenAI API key (required for AI Study features)
+     - `GEMINI_API_KEY`: Your free Google Gemini API key (get at https://ai.google.dev/)
      - `SESSION_SECRET`: A random string for session security
 
 2. **Redeploy:**
@@ -132,6 +134,8 @@ When you publish/deploy Studently to production:
    - Check that calendar and tasks persist correctly
 
 **Important:** Development and production environments have separate secret configurations. Secrets set in development won't automatically transfer to production.
+
+**Why Gemini?** Google Gemini 2.5 Flash is completely free with generous limits (15 requests/minute, 1,500/day, 1 million/month), making it perfect for student projects!
 
 ## Future Enhancements (Next Phase)
 - AI chat streaming responses for better UX (currently returns full responses)
@@ -161,6 +165,7 @@ shared/
 
 ## Notes
 - The app uses in-memory storage, so data resets on server restart
-- AI responses are powered by GPT-5 with educational system prompts
+- AI responses are powered by Google Gemini 2.5 Flash (free!) with educational system prompts
 - Each subject mode has tailored guidance to encourage learning
 - The design follows modern productivity app aesthetics (Linear, Notion inspired)
+- Gemini provides faster responses than OpenAI and is completely free for development
