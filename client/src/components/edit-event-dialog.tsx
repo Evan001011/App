@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CalendarEvent } from "@shared/schema";
+import type { CalendarEvent, Subject } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,11 +30,16 @@ interface EditEventDialogProps {
 
 export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogProps) {
   const { toast } = useToast();
+  
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+  });
+
   const [formData, setFormData] = useState({
     title: event.title,
     description: event.description || "",
     date: event.date,
-    subject: event.subject,
+    subjectId: event.subjectId,
     eventType: event.eventType,
   });
 
@@ -43,7 +48,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
       title: event.title,
       description: event.description || "",
       date: event.date,
-      subject: event.subject,
+      subjectId: event.subjectId,
       eventType: event.eventType,
     });
   }, [event]);
@@ -163,19 +168,18 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
             <div>
               <Label htmlFor="subject">Subject</Label>
               <Select
-                value={formData.subject}
-                onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                value={formData.subjectId || undefined}
+                onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
               >
                 <SelectTrigger data-testid="select-edit-event-subject">
-                  <SelectValue />
+                  <SelectValue placeholder="Select a subject..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="math">Math</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="writing">Writing</SelectItem>
-                  <SelectItem value="social_studies">Social Studies</SelectItem>
-                  <SelectItem value="coding">Coding</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
