@@ -37,6 +37,12 @@ Help students learn how to learn through better organization, structured plannin
   - **Writing**: Brainstorming, outlining, and revision help
   - **Social Studies**: Understanding events, causes, and connections
   - **Coding**: Logic, debugging, and algorithmic thinking
+- **Personalized Learning System**: 
+  - **Adaptive AI**: Learns how each student learns best and customizes teaching approach
+  - **Explanation Styles**: Choose between step-by-step, analogies, visual examples, concise, or Socratic questioning
+  - **Complexity Levels**: Set beginner, intermediate, or advanced level for appropriate vocabulary and depth
+  - **Custom Instructions**: Add personal preferences (e.g., "use lots of practice problems", "explain like I'm 10")
+  - **Per-Subject Preferences**: Different learning styles can be set for each subject
 - **Multiple Conversations**: Create, manage, and switch between multiple chat conversations per subject
 - **Conversation Management**: 
   - Create new conversations with auto-generated titles
@@ -71,7 +77,9 @@ Help students learn how to learn through better organization, structured plannin
   - `/api/tasks` - Tasks CRUD
   - `/api/study/conversations` - Conversations CRUD
   - `/api/study/messages/:conversationId` - Retrieve chat history for conversation
-  - `/api/study/chat` - AI chat responses
+  - `/api/study/chat` - AI chat responses (automatically uses learning preferences)
+  - `/api/preferences/:subject` - Get learning preferences for subject
+  - `/api/preferences` - Upsert learning preferences
 
 ### Database Schema (PostgreSQL + Drizzle)
 - **calendar_events**: id (uuid), title, description, date, subject, eventType
@@ -83,6 +91,11 @@ Help students learn how to learn through better organization, structured plannin
   - conversationId references conversations(id) with ON DELETE CASCADE
   - sequence column ensures deterministic chronological ordering
   - sorted by sequence to guarantee user/assistant message order
+- **learning_preferences**: id (uuid), subject, explanationStyle, complexityLevel, customInstructions, updatedAt
+  - Stores personalized learning preferences for each AI subject
+  - explanationStyle: step_by_step, analogies, visual_examples, concise, socratic
+  - complexityLevel: beginner, intermediate, advanced
+  - AI system prompts are dynamically customized based on these preferences
 
 ## API Endpoints
 
@@ -104,7 +117,11 @@ Help students learn how to learn through better organization, structured plannin
 - `POST /api/study/conversations` - Create new conversation
 - `DELETE /api/study/conversations/:id` - Delete conversation (cascades to messages)
 - `GET /api/study/messages/:conversationId` - Get chat history for conversation
-- `POST /api/study/chat` - Send message to AI tutor and get response (requires conversationId, also saves both user and assistant messages to database)
+- `POST /api/study/chat` - Send message to AI tutor and get response (requires conversationId, automatically applies learning preferences, saves both user and assistant messages)
+
+### Learning Preferences
+- `GET /api/preferences/:subject` - Get learning preferences for a subject
+- `PUT /api/preferences` - Create or update learning preferences for a subject
 
 ## Environment Variables
 - `GEMINI_API_KEY` - Free Google Gemini API key for AI study assistant (get at https://ai.google.dev/)
@@ -161,6 +178,8 @@ When you publish/deploy Studently to production:
 - ✅ **Full Data Persistence**: Calendar events, tasks, and AI chat history now persist across sessions and deployments
 - ✅ **Chat Message Ordering Fix**: Added auto-incrementing sequence column to ensure deterministic chronological message order
 - ✅ **Multiple Conversations**: Students can now create, manage, and switch between multiple chat conversations per subject, making it easier to organize different study topics
+- ✅ **Optimistic Updates**: Implemented immediate UI feedback for deletions (conversations, events, tasks) - no more page reloads needed!
+- ✅ **Personalized Learning System**: AI now adapts to each student's learning style with customizable explanation styles, complexity levels, and custom instructions per subject
 
 ## Future Enhancements (Next Phase)
 - AI chat streaming responses for better UX (currently returns full responses)

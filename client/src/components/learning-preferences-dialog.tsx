@@ -120,14 +120,13 @@ export function LearningPreferencesDialog({
                 Choose the teaching style that works best for you
               </p>
               <Select
-                value={formData.explanationStyle}
+                value={formData.explanationStyle || undefined}
                 onValueChange={(value) => setFormData({ ...formData, explanationStyle: value })}
               >
                 <SelectTrigger data-testid="select-explanation-style">
-                  <SelectValue placeholder="Choose a teaching style..." />
+                  <SelectValue placeholder="Default (Balanced approach)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default (Balanced approach)</SelectItem>
                   <SelectItem value="step_by_step">Step-by-Step - Break everything into small steps</SelectItem>
                   <SelectItem value="analogies">Analogies - Use real-world examples and metaphors</SelectItem>
                   <SelectItem value="visual_examples">Visual Examples - Describe diagrams and concrete examples</SelectItem>
@@ -145,14 +144,13 @@ export function LearningPreferencesDialog({
                 This helps the AI use appropriate vocabulary and concepts
               </p>
               <Select
-                value={formData.complexityLevel}
+                value={formData.complexityLevel || undefined}
                 onValueChange={(value) => setFormData({ ...formData, complexityLevel: value })}
               >
                 <SelectTrigger data-testid="select-complexity-level">
-                  <SelectValue placeholder="Choose your level..." />
+                  <SelectValue placeholder="Default (Adaptive)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default (Adaptive)</SelectItem>
                   <SelectItem value="beginner">Beginner - I'm just starting out</SelectItem>
                   <SelectItem value="intermediate">Intermediate - I have some experience</SelectItem>
                   <SelectItem value="advanced">Advanced - I want in-depth explanations</SelectItem>
