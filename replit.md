@@ -37,6 +37,12 @@ Help students learn how to learn through better organization, structured plannin
   - **Writing**: Brainstorming, outlining, and revision help
   - **Social Studies**: Understanding events, causes, and connections
   - **Coding**: Logic, debugging, and algorithmic thinking
+- **Multiple Conversations**: Create, manage, and switch between multiple chat conversations per subject
+- **Conversation Management**: 
+  - Create new conversations with auto-generated titles
+  - Delete old conversations to stay organized
+  - Switch between conversations to track different topics
+  - Each subject maintains separate conversation history
 - **Conversational Interface**: Chat-based interaction with subject-specific AI tutors
 - **Context Retention**: Maintains conversation history for coherent guidance
 - **Educational Focus**: Guides students to understand concepts rather than providing direct answers
@@ -63,13 +69,18 @@ Help students learn how to learn through better organization, structured plannin
 - **API Routes**:
   - `/api/calendar` - Calendar events CRUD
   - `/api/tasks` - Tasks CRUD
+  - `/api/study/conversations` - Conversations CRUD
+  - `/api/study/messages/:conversationId` - Retrieve chat history for conversation
   - `/api/study/chat` - AI chat responses
-  - `/api/study/messages/:subject` - Retrieve chat history
 
 ### Database Schema (PostgreSQL + Drizzle)
 - **calendar_events**: id (uuid), title, description, date, subject, eventType
 - **tasks**: id (uuid), title, completed, date, order, subject
-- **chat_messages**: id (uuid), sequence (serial), role, content, subject, timestamp
+- **conversations**: id (uuid), subject, title, createdAt
+  - Stores conversation metadata for each subject
+  - Subject can be: math_science, writing, social_studies, coding
+- **chat_messages**: id (uuid), conversationId (foreign key), sequence (serial), role, content, timestamp
+  - conversationId references conversations(id) with ON DELETE CASCADE
   - sequence column ensures deterministic chronological ordering
   - sorted by sequence to guarantee user/assistant message order
 
@@ -89,8 +100,11 @@ Help students learn how to learn through better organization, structured plannin
 - `DELETE /api/tasks/:id` - Delete task
 
 ### AI Study
-- `GET /api/study/messages/:subject` - Get chat history for subject (math_science, writing, social_studies, coding)
-- `POST /api/study/chat` - Send message to AI tutor and get response (also saves both user and assistant messages to database)
+- `GET /api/study/conversations/:subject` - Get all conversations for a subject
+- `POST /api/study/conversations` - Create new conversation
+- `DELETE /api/study/conversations/:id` - Delete conversation (cascades to messages)
+- `GET /api/study/messages/:conversationId` - Get chat history for conversation
+- `POST /api/study/chat` - Send message to AI tutor and get response (requires conversationId, also saves both user and assistant messages to database)
 
 ## Environment Variables
 - `GEMINI_API_KEY` - Free Google Gemini API key for AI study assistant (get at https://ai.google.dev/)
@@ -146,6 +160,7 @@ When you publish/deploy Studently to production:
 - ✅ **Database Migration Complete**: Migrated from in-memory storage to PostgreSQL with Drizzle ORM
 - ✅ **Full Data Persistence**: Calendar events, tasks, and AI chat history now persist across sessions and deployments
 - ✅ **Chat Message Ordering Fix**: Added auto-incrementing sequence column to ensure deterministic chronological message order
+- ✅ **Multiple Conversations**: Students can now create, manage, and switch between multiple chat conversations per subject, making it easier to organize different study topics
 
 ## Future Enhancements (Next Phase)
 - AI chat streaming responses for better UX (currently returns full responses)
