@@ -1,216 +1,48 @@
 # Studently - Student Productivity Platform
 
 ## Overview
-Studently is a comprehensive productivity and learning platform designed by students, for students. It combines a monthly calendar, daily task planner, and AI-powered study assistant to help students stay organized and engaged in their learning.
+Studently is a comprehensive, student-designed productivity and learning platform. Its core purpose is to help students learn how to learn through enhanced organization, structured planning, and thoughtful AI guidance. It integrates a monthly calendar, daily task planner, and an AI-powered study assistant to foster engagement and organization. The platform aims to encourage critical thinking over direct answers and has strong market potential for students seeking to improve their academic efficiency and learning methodologies.
 
-## Mission
-Help students learn how to learn through better organization, structured planning, and thoughtful AI guidance that encourages critical thinking rather than providing quick answers.
+## User Preferences
+I want iterative development. Ask before making major changes. I prefer detailed explanations.
 
-## Core Features
+## System Architecture
+Studently utilizes a modern web stack with a clear separation of concerns between its frontend and backend.
 
-### 1. Dashboard
-- **Today's Progress**: Visual progress bar showing task completion rate
-- **Upcoming Events**: Quick view of calendar events
-- **AI Study Assistant**: Direct access to subject-specific tutoring powered by Google Gemini
-- **Learning Journey Stats**: Overview of daily tasks, events, and completion rates
+### UI/UX Decisions
+- **Design System**: Features a vibrant blue primary color (HSL 250 100% 60%) and distinct subject-specific colors (Math: blue, Science: green, Writing: purple, Social Studies: orange, Coding: pink).
+- **Typography**: Uses Inter for UI elements and JetBrains Mono for code displays.
+- **Responsiveness**: Fully responsive design for desktop, tablet, and mobile.
+- **Theming**: Supports persistent Light/Dark mode.
+- **Interaction**: Implements hover-elevate and active-elevate-2 for interactive elements.
+- **Feedback**: Includes skeleton states, loading indicators, empty states, and toast notifications.
 
-### 2. Monthly Calendar
-- **Interactive Calendar Grid**: Monthly view with clickable date cells
-- **Color-Coded Events**: Events distinguished by subject (Math, Science, Writing, Social Studies, Coding, Other)
-- **Event Management**: Create, edit, and delete calendar events with descriptions
-- **Event Types**: Support for assignments, quizzes, tests, and deadlines
-- **Subject Legend**: Visual guide showing color coding for all subjects
-- **Month Navigation**: Browse previous and future months
+### Technical Implementations
+- **Frontend**: Developed with React and TypeScript, using Wouter for routing. Styling is managed with Tailwind CSS and shadcn/ui components. TanStack Query handles server state management.
+- **Backend**: Built with Express.js and TypeScript.
+- **Database**: PostgreSQL (Neon) is used for full data persistence, managed via Drizzle ORM.
+- **AI Integration**: Leverages Google Gemini 2.5 Flash for the AI Study Assistant, dynamically customizing prompts based on user learning preferences.
+- **Architecture Patterns**: Follows a Schema-First approach for type safety, uses Zod for runtime validation, and implements a `DatabaseStorage` class for database interactions.
 
-### 3. Daily Task Planner
-- **Date-Based Tasks**: View and manage tasks for any specific date
-- **Quick Add**: Fast task creation with Enter key support
-- **Task States**: Separate views for incomplete and completed tasks
-- **Task Management**: Mark complete/incomplete, delete tasks
-- **Completion Stats**: Live tracking of tasks remaining and completed
-- **Drag Indicators**: Visual grip handles for future drag-and-drop functionality
+### Feature Specifications
+- **Dashboard**: Displays daily progress, upcoming events, AI Study Assistant access, and learning journey statistics.
+- **Monthly Calendar**: Interactive, color-coded event management (create, edit, delete assignments, quizzes, tests, deadlines) with customizable subjects and month navigation.
+- **Daily Task Planner**: Date-based task management with quick add, distinct views for incomplete/completed tasks, and live completion stats.
+- **Flashcards System**: Organizes flashcards by customizable subjects into sets, supports bi-directional flipping, and full CRUD operations. (Backend complete, UI in development).
+- **Streak Tracking**: Automatically tracks daily task completion, calculates current streaks, and visualizes productive days. (Backend complete, UI in development).
+- **AI Study Assistant**:
+    - **Subject Modes**: Offers four specialized modes: Math & Science, Writing, Social Studies, and Coding.
+    - **Personalized Learning**: Adaptive AI with customizable explanation styles (step-by-step, analogies, visual examples, concise, Socratic), complexity levels (beginner, intermediate, advanced), and custom instructions, configurable per subject.
+    - **Conversation Management**: Supports multiple, switchable, and deletable chat conversations per subject with context retention.
+    - **Educational Focus**: Guides students to understand concepts rather than providing direct answers.
 
-### 4. AI Study Assistant
-- **Powered by Google Gemini 2.5 Flash**: Free, fast, and intelligent AI model
-- **Four Subject Modes**:
-  - **Math & Science**: Step-by-step problem-solving guidance
-  - **Writing**: Brainstorming, outlining, and revision help
-  - **Social Studies**: Understanding events, causes, and connections
-  - **Coding**: Logic, debugging, and algorithmic thinking
-- **Personalized Learning System**: 
-  - **Adaptive AI**: Learns how each student learns best and customizes teaching approach
-  - **Explanation Styles**: Choose between step-by-step, analogies, visual examples, concise, or Socratic questioning
-  - **Complexity Levels**: Set beginner, intermediate, or advanced level for appropriate vocabulary and depth
-  - **Custom Instructions**: Add personal preferences (e.g., "use lots of practice problems", "explain like I'm 10")
-  - **Per-Subject Preferences**: Different learning styles can be set for each subject
-- **Multiple Conversations**: Create, manage, and switch between multiple chat conversations per subject
-- **Conversation Management**: 
-  - Create new conversations with auto-generated titles
-  - Delete old conversations to stay organized
-  - Switch between conversations to track different topics
-  - Each subject maintains separate conversation history
-- **Conversational Interface**: Chat-based interaction with subject-specific AI tutors
-- **Context Retention**: Maintains conversation history for coherent guidance
-- **Educational Focus**: Guides students to understand concepts rather than providing direct answers
-- **Generous Free Tier**: 15 requests/minute, 1,500/day, 1 million/month
+### System Design Choices
+- **Data Persistence**: All user data (calendar events, tasks, AI chat history, subjects, flashcards, streaks, preferences) persists using PostgreSQL.
+- **API Endpoints**: Comprehensive RESTful API for all features, including CRUD operations for subjects, calendar events, tasks, flashcards, streaks, AI conversations, messages, and learning preferences.
+- **Chat Message Ordering**: Utilizes an auto-incrementing sequence column for deterministic chronological message ordering in AI conversations.
+- **Optimistic Updates**: Implemented for a responsive UI experience, especially for deletions.
 
-## Technical Architecture
-
-### Frontend (React + TypeScript)
-- **Framework**: React with Wouter for routing
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: TanStack Query for server state
-- **Theme**: Light/Dark mode support with persistent storage
-- **Design System**: 
-  - Primary color: Vibrant blue (HSL 250 100% 60%)
-  - Subject colors: Math (blue), Science (green), Writing (purple), Social Studies (orange), Coding (pink)
-  - Typography: Inter for UI, JetBrains Mono for code
-  - Consistent spacing and responsive design
-
-### Backend (Express + TypeScript)
-- **Server**: Express.js with TypeScript
-- **Database**: PostgreSQL (Neon) with Drizzle ORM for full data persistence
-- **Storage**: DatabaseStorage class implementing IStorage interface with Drizzle queries
-- **AI Integration**: Google Gemini 2.5 Flash (free) with subject-specific system prompts
-- **API Routes**:
-  - `/api/calendar` - Calendar events CRUD
-  - `/api/tasks` - Tasks CRUD
-  - `/api/study/conversations` - Conversations CRUD
-  - `/api/study/messages/:conversationId` - Retrieve chat history for conversation
-  - `/api/study/chat` - AI chat responses (automatically uses learning preferences)
-  - `/api/preferences/:subject` - Get learning preferences for subject
-  - `/api/preferences` - Upsert learning preferences
-
-### Database Schema (PostgreSQL + Drizzle)
-- **calendar_events**: id (uuid), title, description, date, subject, eventType
-- **tasks**: id (uuid), title, completed, date, order, subject
-- **conversations**: id (uuid), subject, title, createdAt
-  - Stores conversation metadata for each subject
-  - Subject can be: math_science, writing, social_studies, coding
-- **chat_messages**: id (uuid), conversationId (foreign key), sequence (serial), role, content, timestamp
-  - conversationId references conversations(id) with ON DELETE CASCADE
-  - sequence column ensures deterministic chronological ordering
-  - sorted by sequence to guarantee user/assistant message order
-- **learning_preferences**: id (uuid), subject, explanationStyle, complexityLevel, customInstructions, updatedAt
-  - Stores personalized learning preferences for each AI subject
-  - explanationStyle: step_by_step, analogies, visual_examples, concise, socratic
-  - complexityLevel: beginner, intermediate, advanced
-  - AI system prompts are dynamically customized based on these preferences
-
-## API Endpoints
-
-### Calendar Events
-- `GET /api/calendar/:year/:month` - Get events for specific month
-- `GET /api/calendar/upcoming` - Get upcoming events (next 10)
-- `POST /api/calendar` - Create new event
-- `PATCH /api/calendar/:id` - Update event
-- `DELETE /api/calendar/:id` - Delete event
-
-### Tasks
-- `GET /api/tasks/:date` - Get tasks for specific date
-- `POST /api/tasks` - Create new task
-- `PATCH /api/tasks/:id` - Update task (toggle complete, etc.)
-- `DELETE /api/tasks/:id` - Delete task
-
-### AI Study
-- `GET /api/study/conversations/:subject` - Get all conversations for a subject
-- `POST /api/study/conversations` - Create new conversation
-- `DELETE /api/study/conversations/:id` - Delete conversation (cascades to messages)
-- `GET /api/study/messages/:conversationId` - Get chat history for conversation
-- `POST /api/study/chat` - Send message to AI tutor and get response (requires conversationId, automatically applies learning preferences, saves both user and assistant messages)
-
-### Learning Preferences
-- `GET /api/preferences/:subject` - Get learning preferences for a subject
-- `PUT /api/preferences` - Create or update learning preferences for a subject
-
-## Environment Variables
-- `GEMINI_API_KEY` - Free Google Gemini API key for AI study assistant (get at https://ai.google.dev/)
-- `SESSION_SECRET` - Session secret for Express
-
-## Pages and Routes
-- `/` - Dashboard (home page with overview)
-- `/calendar` - Monthly calendar view
-- `/tasks` - Daily task planner
-- `/study` - AI study assistant
-
-## User Experience Highlights
-- **Responsive Design**: Works beautifully on desktop, tablet, and mobile
-- **Dark Mode**: Full dark mode support across all pages
-- **Loading States**: Skeleton states and loading indicators
-- **Empty States**: Encouraging messages when no data exists
-- **Toast Notifications**: Success/error feedback for user actions
-- **Keyboard Shortcuts**: Enter to submit forms, Shift+Enter for new lines
-
-## Development Notes
-- Built with Schema-First approach for type safety
-- Uses Zod for runtime validation
-- Follows shadcn component patterns
-- Implements hover-elevate and active-elevate-2 for interactions
-- Maintains consistent spacing (p-2, p-4, p-6 system)
-- All interactive elements have proper data-testid attributes
-
-## Deployment Instructions
-
-### Publishing Your App
-When you publish/deploy Studently to production:
-
-1. **Configure Environment Variables:**
-   - Go to the Deployments tab in Replit
-   - Open your deployment settings
-   - Add the following secrets:
-     - `GEMINI_API_KEY`: Your free Google Gemini API key (get at https://ai.google.dev/)
-     - `SESSION_SECRET`: A random string for session security
-
-2. **Redeploy:**
-   - After adding the secrets, redeploy your app
-   - The AI Study features will now work in production
-
-3. **Verify:**
-   - Test all AI subject modes to ensure they're working
-   - Check that calendar and tasks persist correctly
-
-**Important:** Development and production environments have separate secret configurations. Secrets set in development won't automatically transfer to production.
-
-**Why Gemini?** Google Gemini 2.5 Flash is completely free with generous limits (15 requests/minute, 1,500/day, 1 million/month), making it perfect for student projects!
-
-## Recent Changes (October 2025)
-- ✅ **Database Migration Complete**: Migrated from in-memory storage to PostgreSQL with Drizzle ORM
-- ✅ **Full Data Persistence**: Calendar events, tasks, and AI chat history now persist across sessions and deployments
-- ✅ **Chat Message Ordering Fix**: Added auto-incrementing sequence column to ensure deterministic chronological message order
-- ✅ **Multiple Conversations**: Students can now create, manage, and switch between multiple chat conversations per subject, making it easier to organize different study topics
-- ✅ **Optimistic Updates**: Implemented immediate UI feedback for deletions (conversations, events, tasks) - no more page reloads needed!
-- ✅ **Personalized Learning System**: AI now adapts to each student's learning style with customizable explanation styles, complexity levels, and custom instructions per subject
-
-## Future Enhancements (Next Phase)
-- AI chat streaming responses for better UX (currently returns full responses)
-- User authentication with Replit Auth
-- Smart reminders based on study patterns
-- Spaced repetition for topic review
-- Calendar import/export (Google Calendar, iCal)
-- Subject-specific progress tracking
-- Study session analytics
-- Advanced task reordering with keyboard shortcuts
-
-## Project Structure
-```
-client/
-  src/
-    components/     # Reusable UI components (dialogs, nav, theme)
-    pages/          # Page components (dashboard, calendar, tasks, study)
-    lib/            # Utilities and query client
-server/
-  db.ts             # PostgreSQL database connection (Neon + Drizzle)
-  routes.ts         # API endpoint definitions
-  storage.ts        # DatabaseStorage implementation with Drizzle queries
-  gemini.ts         # Google Gemini AI integration with subject prompts
-shared/
-  schema.ts         # Drizzle schema definitions and Zod validation schemas
-```
-
-## Notes
-- Data persists across sessions using PostgreSQL database (Neon-hosted)
-- AI responses powered by Google Gemini 2.5 Flash (free!) with educational system prompts
-- Each subject mode has tailored guidance to encourage learning
-- Chat messages use auto-incrementing sequence for guaranteed chronological order
-- Design follows modern productivity app aesthetics (Linear, Notion inspired)
-- Gemini provides faster responses than OpenAI and is completely free for development
+## External Dependencies
+- **PostgreSQL (Neon)**: Cloud-hosted relational database for all application data.
+- **Google Gemini 2.5 Flash API**: Powers the AI Study Assistant, providing free and intelligent AI capabilities.
+- **Replit Auth**: Planned for user authentication.
