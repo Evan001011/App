@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import type { CalendarEvent } from "@shared/schema";
-import { getSubjectColor, getSubjectLabel, getEventTypeLabel, formatDate } from "@/lib/utils";
+import type { CalendarEvent, Subject } from "@shared/schema";
+import { getEventTypeLabel, formatDate } from "@/lib/utils";
 import { AddEventDialog } from "@/components/add-event-dialog";
 import { EditEventDialog } from "@/components/edit-event-dialog";
 
@@ -19,6 +19,17 @@ export default function Calendar() {
   const { data: events = [], isLoading } = useQuery<CalendarEvent[]>({
     queryKey: ["/api/calendar", year, month + 1],
   });
+
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+  });
+
+  const subjectsMap = new Map(subjects.map(s => [s.id, s]));
+  const getSubjectColor = (subjectId: string | null) => {
+    if (!subjectId) return "hsl(var(--muted-foreground))";
+    const subject = subjectsMap.get(subjectId);
+    return subject?.color || "hsl(var(--muted-foreground))";
+  };
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -62,7 +73,7 @@ export default function Calendar() {
             <div
               key={event.id}
               className="text-xs p-1 rounded-md border-l-2 bg-accent cursor-pointer hover-elevate"
-              style={{ borderLeftColor: getSubjectColor(event.subject) }}
+              style={{ borderLeftColor: getSubjectColor(event.subjectId) }}
               onClick={() => setSelectedEvent(event)}
               data-testid={`event-${event.id}`}
             >
@@ -131,17 +142,23 @@ export default function Calendar() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Subject Legend</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Your Subjects</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {["math", "science", "writing", "social_studies", "coding", "other"].map((subject) => (
-              <div key={subject} className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: getSubjectColor(subject) }}
-                />
-                <span className="text-sm text-foreground">{getSubjectLabel(subject)}</span>
-              </div>
-            ))}
+            {subjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground col-span-full">
+                No subjects yet. Add subjects from the Dashboard to get started!
+              </p>
+            ) : (
+              subjects.map((subject) => (
+                <div key={subject.id} className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded"
+                    style={{ backgroundColor: subject.color }}
+                  />
+                  <span className="text-sm text-foreground">{subject.name}</span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
