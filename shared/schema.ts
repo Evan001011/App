@@ -1,23 +1,7 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, integer, timestamp, serial, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, integer, timestamp, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-
-// Subjects Schema - User-created custom subjects
-export const subjects = pgTable("subjects", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  color: text("color").notNull(), // hex color code
-  aiCategory: text("ai_category"), // Optional: maps to AI tutor category for study assistance
-  createdAt: text("created_at").notNull(), // ISO string
-});
-
-export const insertSubjectSchema = createInsertSchema(subjects).omit({
-  id: true,
-});
-
-export type InsertSubject = z.infer<typeof insertSubjectSchema>;
-export type Subject = typeof subjects.$inferSelect;
 
 // Calendar Events Schema
 export const calendarEvents = pgTable("calendar_events", {
@@ -25,7 +9,7 @@ export const calendarEvents = pgTable("calendar_events", {
   title: text("title").notNull(),
   description: text("description"),
   date: text("date").notNull(), // YYYY-MM-DD format
-  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(), // math, science, writing, social_studies, coding, other
   eventType: text("event_type").notNull(), // assignment, quiz, test, deadline
 });
 
@@ -43,7 +27,7 @@ export const tasks = pgTable("tasks", {
   completed: boolean("completed").notNull().default(false),
   date: text("date").notNull(), // YYYY-MM-DD format
   order: integer("order").notNull().default(0),
-  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  subject: text("subject"), // optional subject category
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({
@@ -56,7 +40,7 @@ export type Task = typeof tasks.$inferSelect;
 // AI Conversations Schema
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  subjectId: varchar("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(), // math_science, writing, social_studies, coding
   title: text("title").notNull(),
   createdAt: text("created_at").notNull(), // ISO string
 });
@@ -86,13 +70,15 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
-// Event types
+// Subject types for color coding
+export const subjects = ["math", "science", "writing", "social_studies", "coding", "other"] as const;
+export type Subject = typeof subjects[number];
+
 export const eventTypes = ["assignment", "quiz", "test", "deadline"] as const;
 export type EventType = typeof eventTypes[number];
 
-// AI Subject Categories - for AI Study Assistant
-export const aiCategories = ["math_science", "writing", "social_studies", "coding", "general"] as const;
-export type AICategory = typeof aiCategories[number];
+export const aiSubjects = ["math_science", "writing", "social_studies", "coding"] as const;
+export type AISubject = typeof aiSubjects[number];
 
 // Learning Preferences Schema
 export const explanationStyles = ["step_by_step", "analogies", "visual_examples", "concise", "socratic"] as const;
@@ -103,7 +89,7 @@ export type ComplexityLevel = typeof complexityLevels[number];
 
 export const learningPreferences = pgTable("learning_preferences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  subjectId: varchar("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(), // math_science, writing, social_studies, coding, or "general" for all subjects
   explanationStyle: text("explanation_style"), // step_by_step, analogies, visual_examples, concise, socratic
   complexityLevel: text("complexity_level"), // beginner, intermediate, advanced
   customInstructions: text("custom_instructions"), // Free-form text for personalization
@@ -116,34 +102,3 @@ export const insertLearningPreferenceSchema = createInsertSchema(learningPrefere
 
 export type InsertLearningPreference = z.infer<typeof insertLearningPreferenceSchema>;
 export type LearningPreference = typeof learningPreferences.$inferSelect;
-
-// Flashcard Sets Schema
-export const flashcardSets = pgTable("flashcard_sets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  subjectId: varchar("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  createdAt: text("created_at").notNull(), // ISO string
-});
-
-export const insertFlashcardSetSchema = createInsertSchema(flashcardSets).omit({
-  id: true,
-});
-
-export type InsertFlashcardSet = z.infer<typeof insertFlashcardSetSchema>;
-export type FlashcardSet = typeof flashcardSets.$inferSelect;
-
-// Flashcards Schema
-export const flashcards = pgTable("flashcards", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  setId: varchar("set_id").notNull().references(() => flashcardSets.id, { onDelete: "cascade" }),
-  term: text("term").notNull(),
-  definition: text("definition").notNull(),
-  order: integer("order").notNull().default(0),
-});
-
-export const insertFlashcardSchema = createInsertSchema(flashcards).omit({
-  id: true,
-});
-
-export type InsertFlashcard = z.infer<typeof insertFlashcardSchema>;
-export type Flashcard = typeof flashcards.$inferSelect;
