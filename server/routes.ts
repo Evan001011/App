@@ -114,6 +114,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Study Chat API
+  app.get("/api/study/messages/:subject", async (req, res) => {
+    try {
+      const { subject } = req.params;
+      const messages = await storage.getChatMessages(subject);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
   app.post("/api/study/chat", async (req, res) => {
     try {
       const { subject, message, history } = req.body as {
@@ -126,22 +136,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Subject and message are required" });
       }
 
-      // Get AI response
-      const reply = await getChatResponse(subject, history);
-
-      // Store the conversation in memory
-      const timestamp = new Date().toISOString();
+      // Store user message first with current timestamp
+      const userTimestamp = new Date().toISOString();
       await storage.createChatMessage({
         role: "user",
         content: message,
         subject,
-        timestamp,
+        timestamp: userTimestamp,
       });
+
+      // Get AI response
+      const reply = await getChatResponse(subject, history);
+
+      // Store assistant message with its own timestamp to ensure chronological ordering
+      const assistantTimestamp = new Date().toISOString();
       await storage.createChatMessage({
         role: "assistant",
         content: reply,
         subject,
-        timestamp,
+        timestamp: assistantTimestamp,
       });
 
       res.json({ reply });

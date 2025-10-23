@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, integer, timestamp, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,6 +40,7 @@ export type Task = typeof tasks.$inferSelect;
 // AI Chat Messages Schema
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sequence: serial("sequence").notNull(),
   role: text("role").notNull(), // user, assistant
   content: text("content").notNull(),
   subject: text("subject").notNull(), // math_science, writing, social_studies, coding
@@ -48,6 +49,7 @@ export const chatMessages = pgTable("chat_messages", {
 
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   id: true,
+  sequence: true,
 });
 
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Code, PenTool, Globe, Send, Loader2 } from "lucide-react";
-import type { AISubject } from "@shared/schema";
+import type { AISubject, ChatMessage as DBChatMessage } from "@shared/schema";
 import { getSubjectLabel } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -15,9 +15,18 @@ interface ChatMessage {
 
 export default function Study() {
   const [selectedSubject, setSelectedSubject] = useState<AISubject>("math_science");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: chatHistory = [], isLoading } = useQuery<DBChatMessage[]>({
+    queryKey: ["/api/study/messages", selectedSubject],
+    enabled: !!selectedSubject,
+  });
+
+  const messages: ChatMessage[] = chatHistory.map((msg) => ({
+    role: msg.role as "user" | "assistant",
+    content: msg.content,
+  }));
 
   const chatMutation = useMutation({
     mutationFn: async (data: { subject: AISubject; message: string; history: ChatMessage[] }) => {
@@ -28,10 +37,8 @@ export default function Study() {
       });
       return response;
     },
-    onSuccess: (data) => {
-      if (data && data.reply) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/messages", selectedSubject] });
     },
   });
 
@@ -39,19 +46,18 @@ export default function Study() {
     if (!inputMessage.trim() || chatMutation.isPending) return;
 
     const userMessage: ChatMessage = { role: "user", content: inputMessage };
-    setMessages((prev) => [...prev, userMessage]);
+    const messageToSend = inputMessage;
     setInputMessage("");
 
     chatMutation.mutate({
       subject: selectedSubject,
-      message: inputMessage,
+      message: messageToSend,
       history: [...messages, userMessage],
     });
   };
 
   const handleSubjectChange = (subject: AISubject) => {
     setSelectedSubject(subject);
-    setMessages([]);
   };
 
   useEffect(() => {

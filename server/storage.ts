@@ -148,7 +148,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(chatMessages)
       .where(eq(chatMessages.subject, subject))
-      .orderBy(desc(chatMessages.timestamp))
+      .orderBy(desc(chatMessages.sequence))
       .limit(limit);
     
     // Return in chronological order (oldest first)
