@@ -30,7 +30,6 @@ interface EditEventDialogProps {
 
 export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogProps) {
   const { toast } = useToast();
-  
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
   });
@@ -39,7 +38,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
     title: event.title,
     description: event.description || "",
     date: event.date,
-    subjectId: event.subjectId,
+    subjectId: event.subjectId || "",
     eventType: event.eventType,
   });
 
@@ -48,7 +47,7 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
       title: event.title,
       description: event.description || "",
       date: event.date,
-      subjectId: event.subjectId,
+      subjectId: event.subjectId || "",
       eventType: event.eventType,
     });
   }, [event]);
@@ -167,21 +166,33 @@ export function EditEventDialog({ event, open, onOpenChange }: EditEventDialogPr
 
             <div>
               <Label htmlFor="subject">Subject</Label>
-              <Select
-                value={formData.subjectId || undefined}
-                onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
-              >
-                <SelectTrigger data-testid="select-edit-event-subject">
-                  <SelectValue placeholder="Select a subject..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {subjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No subjects available.
+                </p>
+              ) : (
+                <Select
+                  value={formData.subjectId}
+                  onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
+                >
+                  <SelectTrigger data-testid="select-edit-event-subject">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded"
+                            style={{ backgroundColor: subject.color }}
+                          />
+                          {subject.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>

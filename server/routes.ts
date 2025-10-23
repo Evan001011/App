@@ -8,9 +8,9 @@ import {
   insertConversationSchema,
   insertLearningPreferenceSchema,
   insertSubjectSchema,
+  insertFlashcardSetSchema,
   insertFlashcardSchema,
-  insertDailyStreakSchema,
-  type AISubject,
+  type AICategory,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -118,123 +118,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Study Conversations API
-  app.get("/api/study/conversations/:subject", async (req, res) => {
-    try {
-      const { subject } = req.params;
-      const conversations = await storage.getConversations(subject);
-      res.json(conversations);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch conversations" });
-    }
-  });
-
-  app.post("/api/study/conversations", async (req, res) => {
-    try {
-      const validated = insertConversationSchema.parse(req.body);
-      const conversation = await storage.createConversation(validated);
-      res.status(201).json(conversation);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid conversation data" });
-    }
-  });
-
-  app.delete("/api/study/conversations/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const deleted = await storage.deleteConversation(id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Conversation not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete conversation" });
-    }
-  });
-
-  // AI Study Messages API
-  app.get("/api/study/messages/:conversationId", async (req, res) => {
-    try {
-      const { conversationId } = req.params;
-      const messages = await storage.getChatMessages(conversationId);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch chat messages" });
-    }
-  });
-
-  app.post("/api/study/chat", async (req, res) => {
-    try {
-      const { conversationId, subject, message, history } = req.body as {
-        conversationId: string;
-        subject: AISubject;
-        message: string;
-        history: Array<{ role: "user" | "assistant"; content: string }>;
-      };
-
-      if (!conversationId || !subject || !message) {
-        return res.status(400).json({ error: "ConversationId, subject, and message are required" });
-      }
-
-      // Store user message first with current timestamp
-      const userTimestamp = new Date().toISOString();
-      await storage.createChatMessage({
-        conversationId,
-        role: "user",
-        content: message,
-        timestamp: userTimestamp,
-      });
-
-      // Fetch learning preferences for this subject
-      const preferences = await storage.getLearningPreference(subject);
-      
-      // Get AI response with personalized preferences
-      const reply = await getChatResponse(subject, history, preferences ? {
-        explanationStyle: preferences.explanationStyle,
-        complexityLevel: preferences.complexityLevel,
-        customInstructions: preferences.customInstructions,
-      } : undefined);
-
-      // Store assistant message with its own timestamp to ensure chronological ordering
-      const assistantTimestamp = new Date().toISOString();
-      await storage.createChatMessage({
-        conversationId,
-        role: "assistant",
-        content: reply,
-        timestamp: assistantTimestamp,
-      });
-
-      res.json({ reply });
-    } catch (error) {
-      console.error("Chat API error:", error);
-      res.status(500).json({ error: "Failed to get AI response" });
-    }
-  });
-
-  // Learning Preferences API
-  app.get("/api/preferences/:subject", async (req, res) => {
-    try {
-      const { subject } = req.params;
-      const preference = await storage.getLearningPreference(subject);
-      if (!preference) {
-        return res.json(null);
-      }
-      res.json(preference);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch learning preferences" });
-    }
-  });
-
-  app.put("/api/preferences", async (req, res) => {
-    try {
-      const validated = insertLearningPreferenceSchema.parse(req.body);
-      const preference = await storage.upsertLearningPreference(validated);
-      res.json(preference);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid preference data" });
-    }
-  });
-
   // Subjects API
   app.get("/api/subjects", async (req, res) => {
     try {
@@ -281,12 +164,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Flashcards API
-  app.get("/api/flashcards", async (req, res) => {
+  // AI Study Conversations API
+  app.get("/api/study/conversations/:subjectId", async (req, res) => {
     try {
-      const { subjectId } = req.query;
-      const flashcards = await storage.getFlashcards(subjectId as string);
-      res.json(flashcards);
+      const { subjectId } = req.params;
+      const conversations = await storage.getConversations(subjectId);
+      res.json(conversations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post("/api/study/conversations", async (req, res) => {
+    try {
+      const validated = insertConversationSchema.parse(req.body);
+      const conversation = await storage.createConversation(validated);
+      res.status(201).json(conversation);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid conversation data" });
+    }
+  });
+
+  app.delete("/api/study/conversations/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteConversation(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  // AI Study Messages API
+  app.get("/api/study/messages/:conversationId", async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const messages = await storage.getChatMessages(conversationId);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
+  app.post("/api/study/chat", async (req, res) => {
+    try {
+      const { conversationId, subjectId, aiCategory, message, history } = req.body as {
+        conversationId: string;
+        subjectId: string;
+        aiCategory: AICategory;
+        message: string;
+        history: Array<{ role: "user" | "assistant"; content: string }>;
+      };
+
+      if (!conversationId || !subjectId || !aiCategory || !message) {
+        return res.status(400).json({ error: "ConversationId, subjectId, aiCategory, and message are required" });
+      }
+
+      // Store user message first with current timestamp
+      const userTimestamp = new Date().toISOString();
+      await storage.createChatMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        timestamp: userTimestamp,
+      });
+
+      // Fetch learning preferences for this subject
+      const preferences = await storage.getLearningPreference(subjectId);
+      
+      // Get AI response with personalized preferences
+      const reply = await getChatResponse(aiCategory, history, preferences ? {
+        explanationStyle: preferences.explanationStyle,
+        complexityLevel: preferences.complexityLevel,
+        customInstructions: preferences.customInstructions,
+      } : undefined);
+
+      // Store assistant message with its own timestamp to ensure chronological ordering
+      const assistantTimestamp = new Date().toISOString();
+      await storage.createChatMessage({
+        conversationId,
+        role: "assistant",
+        content: reply,
+        timestamp: assistantTimestamp,
+      });
+
+      res.json({ reply });
+    } catch (error) {
+      console.error("Chat API error:", error);
+      res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+
+  // Learning Preferences API
+  app.get("/api/preferences/:subjectId", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+      const preference = await storage.getLearningPreference(subjectId);
+      if (!preference) {
+        return res.json(null);
+      }
+      res.json(preference);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch learning preferences" });
+    }
+  });
+
+  app.put("/api/preferences", async (req, res) => {
+    try {
+      const validated = insertLearningPreferenceSchema.parse(req.body);
+      const preference = await storage.upsertLearningPreference(validated);
+      res.json(preference);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid preference data" });
+    }
+  });
+
+  // Flashcard Sets API
+  app.get("/api/flashcards/sets", async (req, res) => {
+    try {
+      const sets = await storage.getAllFlashcardSets();
+      res.json(sets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcard sets" });
+    }
+  });
+
+  app.get("/api/flashcards/sets/subject/:subjectId", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+      const sets = await storage.getFlashcardSets(subjectId);
+      res.json(sets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch flashcard sets" });
+    }
+  });
+
+  app.post("/api/flashcards/sets", async (req, res) => {
+    try {
+      const validated = insertFlashcardSetSchema.parse(req.body);
+      const set = await storage.createFlashcardSet(validated);
+      res.status(201).json(set);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid flashcard set data" });
+    }
+  });
+
+  app.patch("/api/flashcards/sets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateFlashcardSet(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Flashcard set not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update flashcard set" });
+    }
+  });
+
+  app.delete("/api/flashcards/sets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFlashcardSet(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Flashcard set not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete flashcard set" });
+    }
+  });
+
+  // Flashcards API
+  app.get("/api/flashcards/:setId", async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const cards = await storage.getFlashcards(setId);
+      res.json(cards);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch flashcards" });
     }
@@ -295,8 +352,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/flashcards", async (req, res) => {
     try {
       const validated = insertFlashcardSchema.parse(req.body);
-      const flashcard = await storage.createFlashcard(validated);
-      res.status(201).json(flashcard);
+      const card = await storage.createFlashcard(validated);
+      res.status(201).json(card);
     } catch (error) {
       res.status(400).json({ error: "Invalid flashcard data" });
     }
@@ -325,36 +382,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete flashcard" });
-    }
-  });
-
-  // Streaks API
-  app.get("/api/streaks/current", async (req, res) => {
-    try {
-      const currentStreak = await storage.getCurrentStreak();
-      res.json({ currentStreak });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch current streak" });
-    }
-  });
-
-  app.get("/api/streaks/:startDate/:endDate", async (req, res) => {
-    try {
-      const { startDate, endDate } = req.params;
-      const streaks = await storage.getDailyStreaks(startDate, endDate);
-      res.json(streaks);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch streaks" });
-    }
-  });
-
-  app.put("/api/streaks", async (req, res) => {
-    try {
-      const validated = insertDailyStreakSchema.parse(req.body);
-      const streak = await storage.upsertDailyStreak(validated);
-      res.json(streak);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid streak data" });
     }
   });
 

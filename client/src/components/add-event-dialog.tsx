@@ -30,7 +30,6 @@ interface AddEventDialogProps {
 
 export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
   const { toast } = useToast();
-  
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
   });
@@ -39,25 +38,20 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
     title: "",
     description: "",
     date: getToday(),
-    subjectId: undefined as string | undefined,
+    subjectId: "",
     eventType: "assignment",
   });
 
-  // Set default subject when subjects load
+  // Auto-select first subject when subjects load
   useEffect(() => {
     if (subjects.length > 0 && !formData.subjectId) {
       setFormData(prev => ({ ...prev, subjectId: subjects[0].id }));
     }
-  }, [subjects]);
+  }, [subjects, formData.subjectId]);
 
   const createEventMutation = useMutation({
     mutationFn: async (data: InsertCalendarEvent) => {
-      // Convert empty subjectId to undefined for database
-      const payload = {
-        ...data,
-        subjectId: data.subjectId || undefined,
-      };
-      return await apiRequest("POST", "/api/calendar", payload);
+      return await apiRequest("POST", "/api/calendar", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
@@ -68,7 +62,7 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
         title: "",
         description: "",
         date: getToday(),
-        subjectId: subjects[0]?.id,
+        subjectId: "",
         eventType: "assignment",
       });
     },
@@ -76,7 +70,7 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim() || !formData.subjectId) return;
     createEventMutation.mutate(formData);
   };
 
@@ -123,21 +117,33 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
 
             <div>
               <Label htmlFor="subject">Subject</Label>
-              <Select
-                value={formData.subjectId}
-                onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
-              >
-                <SelectTrigger data-testid="select-event-subject">
-                  <SelectValue placeholder="Select a subject..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {subjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No subjects available. Create subjects from the Dashboard first.
+                </p>
+              ) : (
+                <Select
+                  value={formData.subjectId}
+                  onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
+                >
+                  <SelectTrigger data-testid="select-event-subject">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded"
+                            style={{ backgroundColor: subject.color }}
+                          />
+                          {subject.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
@@ -170,7 +176,7 @@ export function AddEventDialog({ open, onOpenChange }: AddEventDialogProps) {
             </Button>
             <Button
               type="submit"
-              disabled={!formData.title.trim() || createEventMutation.isPending}
+              disabled={!formData.title.trim() || !formData.subjectId || subjects.length === 0 || createEventMutation.isPending}
               data-testid="button-save-event"
             >
               {createEventMutation.isPending ? "Creating..." : "Create Event"}

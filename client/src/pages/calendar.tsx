@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import type { CalendarEvent, Subject } from "@shared/schema";
-import { getEventTypeLabel } from "@/lib/utils";
+import { getEventTypeLabel, formatDate } from "@/lib/utils";
 import { AddEventDialog } from "@/components/add-event-dialog";
 import { EditEventDialog } from "@/components/edit-event-dialog";
 
@@ -24,9 +24,11 @@ export default function Calendar() {
     queryKey: ["/api/subjects"],
   });
 
-  const getSubject = (subjectId: string | null) => {
-    if (!subjectId) return null;
-    return subjects.find(s => s.id === subjectId);
+  const subjectsMap = new Map(subjects.map(s => [s.id, s]));
+  const getSubjectColor = (subjectId: string | null) => {
+    if (!subjectId) return "hsl(var(--muted-foreground))";
+    const subject = subjectsMap.get(subjectId);
+    return subject?.color || "hsl(var(--muted-foreground))";
   };
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -67,21 +69,18 @@ export default function Calendar() {
       >
         <div className="text-sm font-medium text-foreground mb-1">{day}</div>
         <div className="space-y-1">
-          {dayEvents.map((event) => {
-            const subject = getSubject(event.subjectId);
-            return (
-              <div
-                key={event.id}
-                className="text-xs p-1 rounded-md border-l-2 bg-accent cursor-pointer hover-elevate"
-                style={{ borderLeftColor: subject?.color || "#6b7280" }}
-                onClick={() => setSelectedEvent(event)}
-                data-testid={`event-${event.id}`}
-              >
-                <div className="font-medium text-foreground truncate">{event.title}</div>
-                <div className="text-muted-foreground">{getEventTypeLabel(event.eventType)}</div>
-              </div>
-            );
-          })}
+          {dayEvents.map((event) => (
+            <div
+              key={event.id}
+              className="text-xs p-1 rounded-md border-l-2 bg-accent cursor-pointer hover-elevate"
+              style={{ borderLeftColor: getSubjectColor(event.subjectId) }}
+              onClick={() => setSelectedEvent(event)}
+              data-testid={`event-${event.id}`}
+            >
+              <div className="font-medium text-foreground truncate">{event.title}</div>
+              <div className="text-muted-foreground">{getEventTypeLabel(event.eventType)}</div>
+            </div>
+          ))}
         </div>
       </Card>
     );
@@ -143,17 +142,23 @@ export default function Calendar() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Subject Legend</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Your Subjects</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {subjects.map((subject) => (
-              <div key={subject.id} className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: subject.color }}
-                />
-                <span className="text-sm text-foreground">{subject.name}</span>
-              </div>
-            ))}
+            {subjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground col-span-full">
+                No subjects yet. Add subjects from the Dashboard to get started!
+              </p>
+            ) : (
+              subjects.map((subject) => (
+                <div key={subject.id} className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded"
+                    style={{ backgroundColor: subject.color }}
+                  />
+                  <span className="text-sm text-foreground">{subject.name}</span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
