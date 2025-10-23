@@ -3,9 +3,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Code, PenTool, Globe, Send, Loader2, Plus, Trash2, MessageSquare } from "lucide-react";
+import { BookOpen, Code, PenTool, Globe, Send, Loader2, Plus, Trash2, MessageSquare, Settings } from "lucide-react";
 import type { AISubject, ChatMessage as DBChatMessage, Conversation } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { LearningPreferencesDialog } from "@/components/learning-preferences-dialog";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -16,6 +17,7 @@ export default function Study() {
   const [selectedSubject, setSelectedSubject] = useState<AISubject>("math_science");
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
+  const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations for the selected subject
@@ -165,9 +167,19 @@ export default function Study() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-semibold text-foreground mb-6" data-testid="text-study-title">
-          AI Study Assistant
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-semibold text-foreground" data-testid="text-study-title">
+            AI Study Assistant
+          </h1>
+          <Button
+            variant="outline"
+            onClick={() => setShowPreferencesDialog(true)}
+            data-testid="button-learning-preferences"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Customize Learning
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {subjects.map((subject) => {
@@ -364,6 +376,12 @@ export default function Study() {
           </Card>
         </div>
       </div>
+
+      <LearningPreferencesDialog
+        subject={selectedSubject}
+        open={showPreferencesDialog}
+        onOpenChange={setShowPreferencesDialog}
+      />
     </div>
   );
 }

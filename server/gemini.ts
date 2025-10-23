@@ -17,6 +17,12 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface LearningPreferences {
+  explanationStyle?: string | null;
+  complexityLevel?: string | null;
+  customInstructions?: string | null;
+}
+
 const systemPrompts = {
   math_science: `You are a patient and encouraging tutor for Math and Science. Your goal is to help students understand concepts, not just give them answers.
 
@@ -67,9 +73,50 @@ When students ask for help:
 Focus on building their problem-solving skills and confidence.`,
 };
 
+function customizeSystemPrompt(
+  basePrompt: string,
+  preferences?: LearningPreferences
+): string {
+  if (!preferences) return basePrompt;
+  
+  let customizedPrompt = basePrompt;
+  
+  // Customize based on explanation style
+  if (preferences.explanationStyle) {
+    const styleInstructions = {
+      step_by_step: "\n\nIMPORTANT: The student learns best with detailed step-by-step explanations. Break down concepts into small, sequential steps. Number each step clearly.",
+      analogies: "\n\nIMPORTANT: The student learns best through analogies and real-world examples. Use metaphors and comparisons to familiar concepts whenever possible.",
+      visual_examples: "\n\nIMPORTANT: The student learns best with visual descriptions and concrete examples. Describe diagrams, use specific examples, and paint clear mental pictures.",
+      concise: "\n\nIMPORTANT: The student prefers concise, direct explanations. Get to the point quickly, avoid unnecessary elaboration, but remain thorough.",
+      socratic: "\n\nIMPORTANT: The student learns best through Socratic questioning. Ask probing questions that guide them to discover answers themselves. Lead with questions rather than direct answers.",
+    };
+    
+    customizedPrompt += styleInstructions[preferences.explanationStyle as keyof typeof styleInstructions] || "";
+  }
+  
+  // Customize based on complexity level
+  if (preferences.complexityLevel) {
+    const complexityInstructions = {
+      beginner: "\n\nADJUST COMPLEXITY: The student is at a beginner level. Use simple vocabulary, avoid jargon, explain basic concepts thoroughly. Don't assume prior knowledge.",
+      intermediate: "\n\nADJUST COMPLEXITY: The student is at an intermediate level. You can use some technical terms (but explain them), build on foundational knowledge, and introduce moderately complex ideas.",
+      advanced: "\n\nADJUST COMPLEXITY: The student is at an advanced level. Use technical terminology freely, explore nuanced concepts, challenge them with sophisticated ideas, and make connections to advanced topics.",
+    };
+    
+    customizedPrompt += complexityInstructions[preferences.complexityLevel as keyof typeof complexityInstructions] || "";
+  }
+  
+  // Add custom instructions from the student
+  if (preferences.customInstructions && preferences.customInstructions.trim()) {
+    customizedPrompt += `\n\nSTUDENT'S PERSONAL LEARNING PREFERENCES: ${preferences.customInstructions}`;
+  }
+  
+  return customizedPrompt;
+}
+
 export async function getChatResponse(
   subject: "math_science" | "writing" | "social_studies" | "coding",
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  preferences?: LearningPreferences
 ): Promise<string> {
   // Check if API key is configured
   if (!process.env.GEMINI_API_KEY) {
@@ -77,7 +124,8 @@ export async function getChatResponse(
   }
 
   try {
-    const systemPrompt = systemPrompts[subject];
+    const basePrompt = systemPrompts[subject];
+    const systemPrompt = customizeSystemPrompt(basePrompt, preferences);
     
     // Build conversation history for Gemini
     const conversationParts: string[] = [];

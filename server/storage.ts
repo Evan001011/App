@@ -9,10 +9,13 @@ import {
   type InsertChatMessage,
   type Conversation,
   type InsertConversation,
+  type LearningPreference,
+  type InsertLearningPreference,
   calendarEvents,
   tasks,
   chatMessages,
   conversations,
+  learningPreferences,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
@@ -42,6 +45,11 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(conversationId: string, limit?: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // Learning Preferences
+  getLearningPreference(subject: string): Promise<LearningPreference | undefined>;
+  upsertLearningPreference(preference: InsertLearningPreference): Promise<LearningPreference>;
+  deleteLearningPreference(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -204,6 +212,45 @@ export class DatabaseStorage implements IStorage {
       .values(insertMessage)
       .returning();
     return message;
+  }
+
+  // Learning Preferences
+  async getLearningPreference(subject: string): Promise<LearningPreference | undefined> {
+    const [pref] = await db
+      .select()
+      .from(learningPreferences)
+      .where(eq(learningPreferences.subject, subject));
+    return pref || undefined;
+  }
+
+  async upsertLearningPreference(insertPreference: InsertLearningPreference): Promise<LearningPreference> {
+    // First try to find existing preference for this subject
+    const existing = await this.getLearningPreference(insertPreference.subject);
+    
+    if (existing) {
+      // Update existing
+      const [updated] = await db
+        .update(learningPreferences)
+        .set({ ...insertPreference, updatedAt: new Date().toISOString() })
+        .where(eq(learningPreferences.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Insert new
+      const [created] = await db
+        .insert(learningPreferences)
+        .values({ ...insertPreference, updatedAt: new Date().toISOString() })
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteLearningPreference(id: string): Promise<boolean> {
+    const result = await db
+      .delete(learningPreferences)
+      .where(eq(learningPreferences.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 

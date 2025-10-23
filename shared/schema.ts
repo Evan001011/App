@@ -79,3 +79,26 @@ export type EventType = typeof eventTypes[number];
 
 export const aiSubjects = ["math_science", "writing", "social_studies", "coding"] as const;
 export type AISubject = typeof aiSubjects[number];
+
+// Learning Preferences Schema
+export const explanationStyles = ["step_by_step", "analogies", "visual_examples", "concise", "socratic"] as const;
+export type ExplanationStyle = typeof explanationStyles[number];
+
+export const complexityLevels = ["beginner", "intermediate", "advanced"] as const;
+export type ComplexityLevel = typeof complexityLevels[number];
+
+export const learningPreferences = pgTable("learning_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subject: text("subject").notNull(), // math_science, writing, social_studies, coding, or "general" for all subjects
+  explanationStyle: text("explanation_style"), // step_by_step, analogies, visual_examples, concise, socratic
+  complexityLevel: text("complexity_level"), // beginner, intermediate, advanced
+  customInstructions: text("custom_instructions"), // Free-form text for personalization
+  updatedAt: text("updated_at").notNull(), // ISO string
+});
+
+export const insertLearningPreferenceSchema = createInsertSchema(learningPreferences).omit({
+  id: true,
+});
+
+export type InsertLearningPreference = z.infer<typeof insertLearningPreferenceSchema>;
+export type LearningPreference = typeof learningPreferences.$inferSelect;

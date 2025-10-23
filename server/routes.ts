@@ -6,6 +6,7 @@ import {
   insertCalendarEventSchema,
   insertTaskSchema,
   insertConversationSchema,
+  insertLearningPreferenceSchema,
   type AISubject,
 } from "@shared/schema";
 
@@ -181,8 +182,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: userTimestamp,
       });
 
-      // Get AI response
-      const reply = await getChatResponse(subject, history);
+      // Fetch learning preferences for this subject
+      const preferences = await storage.getLearningPreference(subject);
+      
+      // Get AI response with personalized preferences
+      const reply = await getChatResponse(subject, history, preferences ? {
+        explanationStyle: preferences.explanationStyle,
+        complexityLevel: preferences.complexityLevel,
+        customInstructions: preferences.customInstructions,
+      } : undefined);
 
       // Store assistant message with its own timestamp to ensure chronological ordering
       const assistantTimestamp = new Date().toISOString();
@@ -197,6 +205,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Chat API error:", error);
       res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+
+  // Learning Preferences API
+  app.get("/api/preferences/:subject", async (req, res) => {
+    try {
+      const { subject } = req.params;
+      const preference = await storage.getLearningPreference(subject);
+      if (!preference) {
+        return res.json(null);
+      }
+      res.json(preference);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch learning preferences" });
+    }
+  });
+
+  app.put("/api/preferences", async (req, res) => {
+    try {
+      const validated = insertLearningPreferenceSchema.parse(req.body);
+      const preference = await storage.upsertLearningPreference(validated);
+      res.json(preference);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid preference data" });
     }
   });
 
