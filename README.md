@@ -2,21 +2,21 @@
 
 A comprehensive productivity and learning platform designed by students, for students. Combines a monthly calendar, daily task planner, and AI-powered study assistant to help students stay organized and engaged in their learning.
 
-## 🌟 Features
+## Features
 
-### 📅 Monthly Calendar
+### Monthly Calendar
 - Interactive calendar grid with clickable date cells
 - Color-coded events by subject (Math, Science, Writing, Social Studies, Coding)
 - Event types: Assignments, Quizzes, Tests, and Deadlines
 - Month navigation and event management
 
-### ✅ Daily Task Planner
+### Daily Task Planner
 - Date-based task management
 - Quick task creation with Enter key
 - Mark tasks as complete/incomplete
 - Live completion stats and progress tracking
 
-### 🤖 AI Study Assistant
+### AI Study Assistant
 **Powered by Google Gemini 2.5 Flash (Free!)**
 
 - **Four Subject Modes**: Math & Science, Writing, Social Studies, and Coding
@@ -27,83 +27,7 @@ A comprehensive productivity and learning platform designed by students, for stu
 - **Multiple Conversations**: Organize different topics in separate chats
 - **Educational Focus**: Guides you to understand concepts, not just providing answers
 
-## 🚀 Getting Started
-
-> **Want to host this on GitHub?** See [GITHUB_SETUP.md](./GITHUB_SETUP.md) for step-by-step instructions!
-
-### Prerequisites
-- Node.js 18+ and npm
-- PostgreSQL database (or use a free hosted option like Neon, Supabase, or Railway)
-- Google Gemini API key ([Get one free](https://ai.google.dev/))
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/studently.git
-   cd studently
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your credentials:
-   - `DATABASE_URL`: Your PostgreSQL connection string
-   - `GEMINI_API_KEY`: Your free Google Gemini API key
-   - `SESSION_SECRET`: A random string for session encryption
-
-4. **Set up the database**
-   ```bash
-   npm run db:push
-   ```
-
-5. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open your browser**
-   Navigate to `http://localhost:5000`
-
-## 🗄️ Database Setup
-
-### Option 1: Local PostgreSQL
-Install PostgreSQL locally and create a database:
-```sql
-CREATE DATABASE studently;
-```
-
-### Option 2: Free Hosted Database
-Use a free PostgreSQL hosting service:
-- [Neon](https://neon.tech/) - Serverless PostgreSQL
-- [Supabase](https://supabase.com/) - Free tier with 500MB
-- [Railway](https://railway.app/) - Free $5 monthly credit
-- [ElephantSQL](https://www.elephantsql.com/) - Free 20MB
-
-Copy the connection string to your `.env` file as `DATABASE_URL`.
-
-## 🔑 Getting a Free Gemini API Key
-
-1. Visit [Google AI Studio](https://ai.google.dev/)
-2. Click "Get API Key"
-3. Create a new API key (it's completely free!)
-4. Copy the key to your `.env` file
-
-**Free Tier Limits:**
-- 15 requests/minute
-- 1,500 requests/day
-- 1 million requests/month
-
-More than enough for personal use!
-
-## 📦 Tech Stack
+## Tech Stack
 
 - **Frontend**: React, TypeScript, Tailwind CSS, shadcn/ui
 - **Backend**: Express.js, TypeScript
@@ -112,49 +36,7 @@ More than enough for personal use!
 - **State Management**: TanStack Query
 - **Routing**: Wouter
 
-## 🚢 Deployment
-
-This app deploys directly from your GitHub repository! Once you push your code to GitHub, you can deploy to any of these platforms with automatic deployments on every push:
-
-### 🎯 Railway (Recommended) ⭐
-**Best for Express.js + PostgreSQL apps**
-1. Push code to GitHub
-2. Connect [Railway](https://railway.app/) to your GitHub repo
-3. Railway auto-detects the setup (uses `railway.json`)
-4. Add PostgreSQL database
-5. Set `GEMINI_API_KEY` environment variable
-6. Deploy! 
-
-Free $5/month credit - plenty for student projects.
-
-### 🎨 Render
-**Free tier with PostgreSQL included**
-1. Push code to GitHub  
-2. Connect [Render](https://render.com/) to your GitHub repo
-3. Render uses `render.yaml` for auto-configuration
-4. Set `GEMINI_API_KEY` environment variable
-5. Deploy!
-
-Automatic SSL, zero-downtime deploys.
-
-### 🚁 Fly.io
-**Global deployment with free tier**
-```bash
-fly launch # Auto-detects your app
-fly postgres create # Add database
-fly deploy # Go live!
-```
-
-### 📘 Detailed Instructions
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete step-by-step guides, troubleshooting, and platform comparisons.
-
-### 🎓 Deploy on Replit (Already Configured)
-This project is already set up on Replit:
-1. Click "Publish" to deploy to production
-2. Add environment variables in Deployments settings
-3. Done!
-
-## 📁 Project Structure
+##  Project Structure
 
 ```
 studently/
@@ -172,37 +54,16 @@ studently/
     └── schema.ts       # Database schema and types
 ```
 
-## 🔧 Available Scripts
-
-- `npm run dev` - Start development server (frontend + backend)
-- `npm run build` - Build for production
-- `npm run db:push` - Sync database schema
-- `npm run db:studio` - Open Drizzle Studio (database GUI)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - AI powered by [Google Gemini](https://ai.google.dev/)
 - Icons from [Lucide](https://lucide.dev/)
+- Configured GitHub–Replit integration for live hosting
+  
 
-## 📧 Support
-
-If you have any questions or run into issues, please open an issue on GitHub.
-
----
-
-**Made with ❤️ by students, for students**
+**Made by students, for students**
