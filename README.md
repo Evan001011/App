@@ -2,8 +2,6 @@
 
 A comprehensive productivity and learning platform designed by students, for students. Combines a monthly calendar, daily task planner, and AI-powered study assistant to help students stay organized and engaged in their learning.
 
-![Studently](./generated-icon.png)
-
 ## 🌟 Features
 
 ### 📅 Monthly Calendar
